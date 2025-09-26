@@ -79,96 +79,171 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.playerName),
-            Text(widget.teamName, style: const TextStyle(fontSize: 14)),
-          ],
-        ),
-        backgroundColor: Colors.blueGrey[800],
-      ),
-      body: Column(
-        children: [
-          // STATS DU JOUEUR
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        const Text('SCORE'),
-                        Text(
-                          '$score',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Text('ÉQUIPE'),
-                        Text(
-                          widget.teamName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+  void initState() {
+    super.initState();
+    _setupNetworkListener();
+  }
 
-          // BUZZER
-          Expanded(
-            child: Center(
-              child: GestureDetector(
-                onTap: _sendBuzz,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: _isBuzzerLocked ? Colors.grey : Colors.red,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      if (!_isBuzzerLocked)
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.5),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
+  // Dans _PlayerScreenState - MODIFIER le listener
+  void _setupNetworkListener() {
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+
+    networkService.messages.listen((message) {
+      if (message['type'] == 'score_update') {
+        // METTRE À JOUR LE SCORE DU JOUEUR CONCERNÉ
+        if (message['playerName'] == widget.playerName) {
+          final newScore =
+              message['totalScore'] ?? (score + (message['points'] ?? 0));
+          if (mounted) {
+            setState(() {
+              score = newScore;
+            });
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '🎉 +${message['points']} points ! Total: ${message['totalScore']}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else if (message['type'] == 'lock_buzzers') {
+        if (mounted) {
+          setState(() {
+            _isBuzzerLocked = message['locked'];
+          });
+        }
+      } else if (message['type'] == 'game_start') {
+        // Réinitialiser le buzzer au début du jeu
+        if (mounted) {
+          setState(() {
+            _isBuzzerLocked = false;
+          });
+        }
+      }
+    });
+  }
+
+  Future<bool> _onWillPop() async {
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Quitter le jeu ?'),
+            content: const Text('Vous serez déconnecté du salon.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('ANNULER'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('QUITTER'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.playerName),
+              Text(widget.teamName, style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+          backgroundColor: Colors.blueGrey[800],
+        ),
+        body: Column(
+          children: [
+            // STATS DU JOUEUR
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          const Text('SCORE'),
+                          Text(
+                            '$score',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          const Text('ÉQUIPE'),
+                          Text(
+                            widget.teamName,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  child: Icon(
-                    _isBuzzerLocked ? Icons.lock : Icons.volume_up,
-                    size: 60,
-                    color: Colors.white,
+                ),
+              ),
+            ),
+
+            // BUZZER
+            Expanded(
+              child: Center(
+                child: GestureDetector(
+                  onTap: _sendBuzz,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: _isBuzzerLocked ? Colors.grey : Colors.red,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        if (!_isBuzzerLocked)
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isBuzzerLocked ? Icons.lock : Icons.volume_up,
+                      size: 60,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // MESSAGE BUZZER
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              _isBuzzerLocked ? 'BUZZ ENVOYÉ' : 'APPUYEZ POUR BUZZER',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // MESSAGE BUZZER
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _isBuzzerLocked ? 'BUZZ ENVOYÉ' : 'APPUYEZ POUR BUZZER',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

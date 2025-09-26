@@ -19,9 +19,11 @@ class _AdminScreenState extends State<AdminScreen> {
   ];
 
   String? _buzzedPlayer;
+  String? _buzzedPlayerId;
   bool _serverStarted = false;
   bool isGameStarted = false;
   int currentQuestion = 1;
+  bool _isGamePaused = false;
   @override
   void initState() {
     super.initState();
@@ -44,24 +46,76 @@ class _AdminScreenState extends State<AdminScreen> {
     });
   }
 
-  // AJOUTE cette méthode
+  Map<String, List<Map<String, dynamic>>> _groupPlayersByTeam() {
+    Map<String, List<Map<String, dynamic>>> teams = {};
+
+    for (var player in players) {
+      String team = player['team'];
+      if (!teams.containsKey(team)) {
+        teams[team] = [];
+      }
+      teams[team]!.add(player);
+    }
+
+    return teams;
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_serverStarted) return true;
+
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Quitter le panneau admin ?'),
+            content: const Text('Les joueurs seront déconnectés.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('ANNULER'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('QUITTER'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  int _getTeamScore(String teamName) {
+    return players.where((player) => player['team'] == teamName).fold(0, (
+      sum,
+      player,
+    ) {
+      final score = player['score'];
+      // S'assurer que score est un int, sinon utiliser 0
+      return sum + (score is int ? score : 0);
+    });
+  }
+
   void _handlePlayerJoin(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
-    final playerId = message['playerId'];
+    final playerId =
+        message['playerId'] ??
+        DateTime.now().millisecondsSinceEpoch.toString(); // ← CORRECTION
+
+    // Vérifier si le joueur existe déjà
+    if (players.any((p) => p['id'] == playerId)) return;
 
     setState(() {
       players.add({
         'name': playerName,
         'team': teamName,
-        'id': playerId, // IMPORTANT pour identifier le joueur
+        'id': playerId,
         'score': 0,
         'connected': true,
       });
     });
   }
 
-  void _handleBuzzMessage(Map<String, dynamic> message) {
+  /*void _handleBuzzMessage(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
     final playerId = message['id'];
@@ -79,7 +133,7 @@ class _AdminScreenState extends State<AdminScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _awardPoints(playerName, playerId);
+              _showPointsDialog(playerId);
             },
             child: const Text('ATTRIBUER POINTS'),
           ),
@@ -95,12 +149,90 @@ class _AdminScreenState extends State<AdminScreen> {
         ],
       ),
     );
+  }*/
+  void _handleBuzzMessage(Map<String, dynamic> message) {
+    final playerName = message['playerName'];
+    final teamName = message['teamName'];
+    final playerId = message['playerId'] ?? playerName; // Fallback si pas d'ID
+
+    setState(() {
+      _buzzedPlayer = playerName;
+      _buzzedPlayerId = playerId; // ← STOCKER L'ID POUR LES POINTS
+    });
+
+    // OUVIR LA FENÊTRE AUTOMATIQUEMENT
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showBuzzDialog(playerName, teamName, playerId);
+    });
+  }
+
+  void _showBuzzDialog(String playerName, String teamName, String playerId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // ← EMPÊCHER DE FERMER SANS CHOIX
+      builder: (context) => AlertDialog(
+        title: const Text('🎉 BUZZ !'),
+        content: Text('$playerName ($teamName) a buzzé !'),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _awardPoints(playerId, 10); // +10 points par défaut
+            },
+            child: const Text('+10 POINTS'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _awardPoints(playerId, 5); // +5 points
+            },
+            child: const Text('+5 POINTS'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resetBuzz(); // Réinitialiser sans points
+            },
+            child: const Text('PASSER'),
+          ),
+        ],
+      ),
+    );
   }
 
   void startGame() {
     setState(() {
       isGameStarted = true;
     });
+  }
+
+  void _lockBuzzers() {
+    // Envoyer un message pour bloquer les buzzers
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({'type': 'lock_buzzers', 'locked': true});
+  }
+
+  void _resetBuzz() {
+    setState(() {
+      _buzzedPlayer = null;
+      _buzzedPlayerId = null;
+    });
+  }
+
+  void _togglePause() {
+    setState(() {
+      _isGamePaused = !_isGamePaused;
+    });
+
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({'type': 'game_pause', 'paused': _isGamePaused});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isGamePaused ? '⏸️ Jeu en pause' : '▶️ Jeu repris'),
+        backgroundColor: _isGamePaused ? Colors.orange : Colors.green,
+      ),
+    );
   }
 
   void nextQuestion() {
@@ -274,182 +406,257 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
-  // MODIFIE _awardPoints pour utiliser l'ID
   void _awardPoints(String playerId, int points) {
     final playerIndex = players.indexWhere((p) => p['id'] == playerId);
-    if (playerIndex != -1) {
-      setState(() {
-        players[playerIndex]['score'] += points;
-      });
+    if (playerIndex == -1) {
+      print('❌ Joueur non trouvé: $playerId');
+      return;
     }
+
+    // Calculer le nouveau score AVANT la mise à jour
+    int newScore = (players[playerIndex]['score'] ?? 0) + points;
+
+    setState(() {
+      players[playerIndex]['score'] = newScore;
+    });
+
+    // ENVOYER LES POINTS À TOUS LES JOUEURS (CORRIGÉ)
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'score_update',
+      'playerId': playerId,
+      'points': points,
+      'playerName': players[playerIndex]['name'],
+      'teamName': players[playerIndex]['team'],
+      'totalScore': newScore, // ← UTILISER newScore calculé
+    });
+
+    _lockBuzzers();
+    _resetBuzz();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('PANNEAU ADMIN'),
-        backgroundColor: Colors.blueGrey[800],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // STATUT DU JEU
-            // Remplace la carte actuelle par :
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      isGameStarted
-                          ? 'QUESTION $currentQuestion'
-                          : 'EN ATTENTE',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // STATUT SERVEUR
-                    // Dans la partie STATUT SERVEUR, remplace par :
-                    Builder(
-                      builder: (context) {
-                        final network = Provider.of<NetworkService>(context);
-                        return Column(
-                          children: [
-                            Text(
-                              network.status,
-                              style: TextStyle(
-                                color: network.isConnected
-                                    ? Colors.green
-                                    : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (network.isHost)
-                              Text('${players.length} joueur(s)'),
-                          ],
-                        );
-                      },
-                    ),
-                    // NOTIFICATION BUZZ
-                    if (_buzzedPlayer != null) ...[
-                      const SizedBox(height: 10),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('PANNEAU ADMIN'),
+          backgroundColor: Colors.blueGrey[800],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // STATUT DU JEU
+              // Remplace la carte actuelle par :
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
                       Text(
-                        'BUZZ: $_buzzedPlayer',
+                        isGameStarted
+                            ? 'QUESTION $currentQuestion'
+                            : 'EN ATTENTE',
                         style: const TextStyle(
-                          color: Colors.red,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+                      const SizedBox(height: 10),
 
-            const SizedBox(height: 20),
-
-            Builder(
-              builder: (context) {
-                final network = Provider.of<NetworkService>(context);
-                return FutureBuilder<String>(
-                  future: _getLocalIp(),
-                  builder: (context, snapshot) {
-                    return Column(
-                      children: [
+                      // STATUT SERVEUR
+                      // Dans la partie STATUT SERVEUR, remplace par :
+                      Builder(
+                        builder: (context) {
+                          final network = Provider.of<NetworkService>(context);
+                          return Column(
+                            children: [
+                              Text(
+                                network.status,
+                                style: TextStyle(
+                                  color: network.isConnected
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (network.isHost)
+                                Text('${players.length} joueur(s)'),
+                            ],
+                          );
+                        },
+                      ),
+                      // NOTIFICATION BUZZ
+                      if (_buzzedPlayer != null) ...[
+                        const SizedBox(height: 10),
                         Text(
-                          network.status,
-                          style: TextStyle(
-                            color: network.isConnected
-                                ? Colors.green
-                                : Colors.red,
+                          'BUZZ: $_buzzedPlayer',
+                          style: const TextStyle(
+                            color: Colors.red,
                             fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
-                        if (network.isHost && snapshot.hasData)
-                          Text('IP: ${snapshot.data!}:8080'),
-                        if (network.isHost) Text('${players.length} joueur(s)'),
                       ],
-                    );
-                  },
-                );
-              },
-            ),
-            // LISTE DES JOUEURS
-            Expanded(
-              child: ListView.builder(
-                itemCount: players.length,
-                itemBuilder: (context, index) {
-                  final player = players[index];
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(
-                        player['connected'] ? Icons.person : Icons.person_off,
-                        color: player['connected'] ? Colors.green : Colors.grey,
-                      ),
-                      title: Text(player['name']),
-                      subtitle: Text(player['team']),
-                      trailing: Text(
-                        '${player['score']} pts',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      onTap: () => _showPointsDialog(index),
-                    ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Builder(
+                builder: (context) {
+                  final network = Provider.of<NetworkService>(context);
+                  return FutureBuilder<String>(
+                    future: _getLocalIp(),
+                    builder: (context, snapshot) {
+                      return Column(
+                        children: [
+                          Text(
+                            network.status,
+                            style: TextStyle(
+                              color: network.isConnected
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (network.isHost && snapshot.hasData)
+                            Text('IP: ${snapshot.data!}:8080'),
+                          if (network.isHost)
+                            Text('${players.length} joueur(s)'),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
-            ),
+              // LISTE DES JOUEURS
+              // Dans le build method - REMPLACER la ListView actuelle
+              Expanded(
+                child: Column(
+                  children: [
+                    // SCORES DES ÉQUIPES
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: _groupPlayersByTeam().entries.map((team) {
+                            return Column(
+                              children: [
+                                Text(
+                                  team.key,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${_getTeamScore(team.key)} pts',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
 
-            // BOUTONS DE CONTRÔLE
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _serverStarted ? null : _startServer,
+                    // LISTE DES JOUEURS PAR ÉQUIPE
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: players.length,
+                        itemBuilder: (context, index) {
+                          final player = players[index];
+                          return Card(
+                            child: ListTile(
+                              leading: Icon(
+                                player['connected']
+                                    ? Icons.person
+                                    : Icons.person_off,
+                                color: player['connected']
+                                    ? Colors.green
+                                    : Colors.grey,
+                              ),
+                              title: Text(player['name']),
+                              subtitle: Text(player['team']),
+                              trailing: Text(
+                                '${player['score']} pts',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              onTap: () => _showPointsDialog(index),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BOUTONS DE CONTRÔLE
+              // MODIFIER la Row des boutons de contrôle
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _serverStarted ? null : _startServer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('SERVER'),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: _serverStarted && !isGameStarted
+                        ? _startGame
+                        : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('SERVER'),
+                    child: const Text('START'),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: _serverStarted && !isGameStarted
-                      ? _startGame
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                  const SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: isGameStarted ? _togglePause : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isGamePaused
+                          ? Colors.green
+                          : Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Icon(_isGamePaused ? Icons.play_arrow : Icons.pause),
                   ),
-                  child: const Text('START'),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: isGameStarted ? nextQuestion : null,
-                    child: const Text('NEXT'),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isGameStarted ? nextQuestion : null,
+                      child: const Text('NEXT'),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 0),
-            ElevatedButton(
-              onPressed: _simulateBuzz,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
+                ],
               ),
-              child: const Text('TEST BUZZ'),
-            ),
-          ],
+              const SizedBox(height: 0),
+              ElevatedButton(
+                onPressed: _simulateBuzz,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('TEST BUZZ'),
+              ),
+            ],
+          ),
         ),
       ),
     );
