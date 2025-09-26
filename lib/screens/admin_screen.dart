@@ -334,7 +334,10 @@ class _AdminScreenState extends State<AdminScreen> {
     });
   }
 
-  void _showPointsDialog(int playerIndex) {
+  void _showPointsDialog(String playerId) {
+    final playerIndex = players.indexWhere((p) => p['id'] == playerId);
+    if (playerIndex == -1) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -343,16 +346,25 @@ class _AdminScreenState extends State<AdminScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _PointsButton(
-              points: 5,
-              onPressed: () => addPoints(playerIndex, 5),
+              points: 10,
+              onPressed: () {
+                Navigator.pop(context);
+                _awardPoints(playerId, 10);
+              },
             ),
             _PointsButton(
-              points: 10,
-              onPressed: () => addPoints(playerIndex, 10),
+              points: 5,
+              onPressed: () {
+                Navigator.pop(context);
+                _awardPoints(playerId, 5);
+              },
             ),
             _PointsButton(
               points: -5,
-              onPressed: () => addPoints(playerIndex, -5),
+              onPressed: () {
+                Navigator.pop(context);
+                _addPenalty(playerId);
+              },
             ),
           ],
         ),
@@ -372,7 +384,7 @@ class _AdminScreenState extends State<AdminScreen> {
     return players.length;
   }
 
-  void _simulateBuzz() {
+  /* void _simulateBuzz() {
     if (players.isNotEmpty && isGameStarted) {
       setState(() {
         _buzzedPlayer = players[0]['name'];
@@ -404,6 +416,110 @@ class _AdminScreenState extends State<AdminScreen> {
         ),
       );
     }
+  }*/
+
+  void _addPenalty(String playerId) {
+    final playerIndex = players.indexWhere((p) => p['id'] == playerId);
+    if (playerIndex == -1) return;
+
+    setState(() {
+      players[playerIndex]['penalties'] =
+          (players[playerIndex]['penalties'] ?? 0) + 1;
+      players[playerIndex]['score'] = (players[playerIndex]['score'] ?? 0) - 5;
+    });
+
+    // Envoyer la pénalité au joueur
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'penalty',
+      'playerId': playerId,
+      'points': -5,
+      'playerName': players[playerIndex]['name'],
+      'totalScore': players[playerIndex]['score'],
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '⛔ Pénalité de 5 pts pour ${players[playerIndex]['name']}',
+        ),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _showBasicStatistics() {
+    // Calculs simples
+    int totalPoints = players.fold(
+      0,
+      (sum, player) => sum + ((player['score'] ?? 0) as num).toInt(),
+    );
+    int connectedPlayers = players.where((p) => p['connected'] == true).length;
+    int totalPenalties = players.fold(
+      0,
+      (sum, player) => sum + ((player['penalties'] ?? 0) as num).toInt(),
+    );
+
+    // Meilleur joueur
+    var bestPlayer = players.isNotEmpty
+        ? players.reduce(
+            (a, b) => (a['score'] ?? 0) > (b['score'] ?? 0) ? a : b,
+          )
+        : null;
+
+    // Scores par équipe
+    Map<String, int> teamScores = {};
+    for (var player in players) {
+      String team = player['team'];
+      teamScores[team] =
+          (((teamScores[team] ?? 0) + (player['score'] ?? 0)) as num).toInt();
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('📊 STATISTIQUES DU JEU'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StatRow('Question actuelle', '#$currentQuestion'),
+              _StatRow(
+                'Joueurs connectés',
+                '$connectedPlayers/${players.length}',
+              ),
+              _StatRow('Points totaux', '$totalPoints pts'),
+              _StatRow('Pénalités totales', '$totalPenalties'),
+
+              const SizedBox(height: 10),
+              const Text(
+                '🏆 Scores par équipe:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ...teamScores.entries.map(
+                (team) => _StatRow(team.key, '${team.value} pts'),
+              ),
+
+              if (bestPlayer != null) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  '⭐ Meilleur joueur:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                _StatRow(bestPlayer['name'], '${bestPlayer['score']} pts'),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('FERMER'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _awardPoints(String playerId, int points) {
@@ -591,7 +707,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                   fontSize: 16,
                                 ),
                               ),
-                              onTap: () => _showPointsDialog(index),
+                              onTap: () => _showPointsDialog(player['id']),
                             ),
                           );
                         },
@@ -602,7 +718,6 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
 
               // BOUTONS DE CONTRÔLE
-              // MODIFIER la Row des boutons de contrôle
               Row(
                 children: [
                   Expanded(
@@ -610,34 +725,39 @@ class _AdminScreenState extends State<AdminScreen> {
                       onPressed: _serverStarted ? null : _startServer,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
                       ),
                       child: const Text('SERVER'),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5),
                   ElevatedButton(
                     onPressed: _serverStarted && !isGameStarted
                         ? _startGame
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
                     ),
                     child: const Text('START'),
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5),
                   ElevatedButton(
                     onPressed: isGameStarted ? _togglePause : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isGamePaused
                           ? Colors.green
                           : Colors.orange,
-                      foregroundColor: Colors.white,
                     ),
                     child: Icon(_isGamePaused ? Icons.play_arrow : Icons.pause),
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: _showBasicStatistics,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                    ),
+                    child: const Icon(Icons.analytics),
+                  ),
+                  SizedBox(width: 5),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: isGameStarted ? nextQuestion : null,
@@ -646,7 +766,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 0),
+              /* const SizedBox(height: 0),
               ElevatedButton(
                 onPressed: _simulateBuzz,
                 style: ElevatedButton.styleFrom(
@@ -654,7 +774,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('TEST BUZZ'),
-              ),
+              ),*/
             ],
           ),
         ),
@@ -679,6 +799,27 @@ class _PointsButton extends StatelessWidget {
         minimumSize: const Size(double.infinity, 50),
       ),
       child: Text('${points > 0 ? '+' : ''}$points points'),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

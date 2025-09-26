@@ -89,7 +89,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final networkService = Provider.of<NetworkService>(context, listen: false);
 
     networkService.messages.listen((message) {
-      if (message['type'] == 'score_update') {
+      if (message['type'] == 'score_update' || message['type'] == 'penalty') {
         // METTRE À JOUR LE SCORE DU JOUEUR CONCERNÉ
         if (message['playerName'] == widget.playerName) {
           final newScore =
@@ -103,9 +103,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '🎉 +${message['points']} points ! Total: ${message['totalScore']}',
+                message['type'] == 'penalty'
+                    ? '⛔ Pénalité: ${message['points']} pts. Total: $newScore'
+                    : '🎉 +${message['points']} points ! Total: $newScore',
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: message['type'] == 'penalty'
+                  ? Colors.orange
+                  : Colors.green,
             ),
           );
         }
