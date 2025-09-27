@@ -1,3 +1,4 @@
+import 'package:clashnow/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,6 +10,8 @@ import 'services/network_service.dart';
 import 'themes/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  //AudioService.init();
   runApp(const MyApp());
 }
 
@@ -20,10 +23,11 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => NetworkService(),
       child: MaterialApp(
-        title: 'Génie Herbe Buzzers',
+        title: 'CLASHNOW',
         theme: AppTheme.lightTheme,
-        home: const HomeScreen(),
+        home: const SplashScreen(),
         routes: {
+          '/home': (context) => const HomeScreen(),
           '/admin': (context) => ChangeNotifierProvider.value(
             value: Provider.of<NetworkService>(context, listen: false),
             child: const AdminScreen(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+//import '../services/audio_service.dart';
 import '../services/network_service.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -47,30 +48,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }*/
   bool _isBuzzerLocked = false;
   void _sendBuzz() {
+    // EMPÊCHER LE BUZZ SI DÉJÀ VERROUILLÉ
+    if (_isBuzzerLocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⏳ Attendez la question suivante...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final networkService = Provider.of<NetworkService>(context, listen: false);
 
     try {
+      // AudioService.playBuzz();
       networkService.sendBuzz(widget.playerName, widget.teamName);
 
       setState(() {
-        _isBuzzerLocked = true;
+        _isBuzzerLocked = true; // Verrouiller localement immédiatement
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 Buzz envoyé !'),
+          content: Text('🎉 Buzz envoyé ! En attente du premier buzzer...'),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Déverrouiller après 5 secondes
-      Future.delayed(const Duration(seconds: 5), () {
-        if (mounted) {
-          setState(() {
-            _isBuzzerLocked = false;
-          });
-        }
-      });
+      // NE PAS DÉVERROUILLER AUTOMATIQUEMENT - l'admin contrôle ça
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Erreur: $e'), backgroundColor: Colors.red),
@@ -118,12 +124,48 @@ class _PlayerScreenState extends State<PlayerScreen> {
           setState(() {
             _isBuzzerLocked = message['locked'];
           });
+
+          // Feedback visuel selon l'état
+          if (message['locked']) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🔒 Buzzers verrouillés - Attente réponse admin'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
         }
       } else if (message['type'] == 'game_start') {
-        // Réinitialiser le buzzer au début du jeu
         if (mounted) {
           setState(() {
             _isBuzzerLocked = false;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎮 Partie démarrée ! Prêt à buzzer.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (message['type'] == 'next_question') {
+        if (mounted) {
+          setState(() {
+            _isBuzzerLocked = false;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '➡️ Question ${message['questionNumber']} - Buzzers activés !',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (message['type'] == 'game_pause') {
+        if (mounted) {
+          setState(() {
+            _isBuzzerLocked = message['paused'];
           });
         }
       }

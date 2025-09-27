@@ -14,8 +14,20 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   List<Map<String, dynamic>> players = [
-    {'name': 'Joueur 1', 'team': 'ÉQUIPE A', 'score': 0, 'connected': true},
-    {'name': 'Joueur 2', 'team': 'ÉQUIPE B', 'score': 0, 'connected': true},
+    {
+      'name': 'Joueur 1',
+      'team': 'ÉQUIPE A',
+      'score': 0,
+      'connected': true,
+      'id': 5,
+    },
+    {
+      'name': 'Joueur 2',
+      'team': 'ÉQUIPE B',
+      'score': 0,
+      'connected': true,
+      'id': 6,
+    },
   ];
 
   String? _buzzedPlayer;
@@ -24,6 +36,9 @@ class _AdminScreenState extends State<AdminScreen> {
   bool isGameStarted = false;
   int currentQuestion = 1;
   bool _isGamePaused = false;
+  String? _firstBuzzerPlayerId; // Premier joueur à buzzer
+  bool _waitingForAnswer = false; // En attente de réponse admin
+  List<String> _buzzedPlayers = []; // Liste des joueurs ayant buzzé
   @override
   void initState() {
     super.initState();
@@ -153,17 +168,43 @@ class _AdminScreenState extends State<AdminScreen> {
   void _handleBuzzMessage(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
-    final playerId = message['playerId'] ?? playerName; // Fallback si pas d'ID
+    final playerId = message['playerId'] ?? playerName;
 
-    setState(() {
-      _buzzedPlayer = playerName;
-      _buzzedPlayerId = playerId; // ← STOCKER L'ID POUR LES POINTS
-    });
+    // SI C'EST LE PREMIER BUZZ
+    if (!_waitingForAnswer && _firstBuzzerPlayerId == null) {
+      setState(() {
+        _firstBuzzerPlayerId = playerId;
+        _waitingForAnswer = true;
+        _buzzedPlayer = playerName;
+        _buzzedPlayerId = playerId;
+        _buzzedPlayers.add(playerId);
+      });
 
-    // OUVIR LA FENÊTRE AUTOMATIQUEMENT
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showBuzzDialog(playerName, teamName, playerId);
-    });
+      // BLOQUER IMMÉDIATEMENT TOUS LES BUZZERS
+      _lockBuzzers();
+
+      //  AudioService.playBuzz();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showBuzzDialog(playerName, teamName, playerId);
+      });
+    } else {
+      // BUZZ SUIVANT - juste l'ajouter à la liste
+      if (!_buzzedPlayers.contains(playerId)) {
+        setState(() {
+          _buzzedPlayers.add(playerId);
+        });
+
+        // Notification pour les buzzs suivants (optionnel)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ $playerName a buzzé (en attente)'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _showBuzzDialog(String playerName, String teamName, String playerId) {
@@ -200,10 +241,31 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  void startGame() {
+  void _startGame() {
+    if (!_serverStarted) return;
+
+    // RÉINITIALISER TOUT LE SYSTÈME DE BUZZ
+    _resetBuzz();
+
     setState(() {
       isGameStarted = true;
+      currentQuestion = 1;
     });
+
+    //AudioService.playStart();
+
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'game_start',
+      'message': 'La partie commence !',
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🎮 Partie démarrée ! Les buzzers sont actifs.'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _lockBuzzers() {
@@ -216,7 +278,18 @@ class _AdminScreenState extends State<AdminScreen> {
     setState(() {
       _buzzedPlayer = null;
       _buzzedPlayerId = null;
+      _firstBuzzerPlayerId = null;
+      _waitingForAnswer = false;
+      _buzzedPlayers.clear();
     });
+
+    // DÉVERROUILLER LES BUZZERS POUR LA QUESTION SUIVANTE
+    _unlockBuzzers();
+  }
+
+  void _unlockBuzzers() {
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({'type': 'lock_buzzers', 'locked': false});
   }
 
   void _togglePause() {
@@ -236,9 +309,26 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   void nextQuestion() {
+    // RÉINITIALISER LE SYSTÈME DE BUZZ POUR LA NOUVELLE QUESTION
+    _resetBuzz();
+
     setState(() {
       currentQuestion++;
     });
+
+    // ENVOYER UN MESSAGE POUR LA NOUVELLE QUESTION
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'next_question',
+      'questionNumber': currentQuestion,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('➡️ Question $currentQuestion - Buzzers activés !'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void addPoints(int playerIndex, int points) {
@@ -262,28 +352,6 @@ class _AdminScreenState extends State<AdminScreen> {
     } catch (e) {
       return 'Erreur: $e';
     }
-  }
-
-  void _startGame() {
-    if (!_serverStarted) return;
-
-    setState(() {
-      isGameStarted = true;
-    });
-
-    // Envoyer un message à tous les joueurs
-    final networkService = Provider.of<NetworkService>(context, listen: false);
-    networkService.sendMessage({
-      'type': 'game_start',
-      'message': 'La partie commence !',
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🎮 Partie démarrée ! Les buzzers sont actifs.'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   void _startServer() async {
@@ -565,7 +633,6 @@ class _AdminScreenState extends State<AdminScreen> {
           child: Column(
             children: [
               // STATUT DU JEU
-              // Remplace la carte actuelle par :
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -575,13 +642,30 @@ class _AdminScreenState extends State<AdminScreen> {
                         isGameStarted
                             ? 'QUESTION $currentQuestion'
                             : 'EN ATTENTE',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 10),
 
+                      if (_waitingForAnswer) ...[
+                        SizedBox(height: 5),
+                        Text(
+                          '⏳ En attente de réponse...',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+
+                      if (_buzzedPlayers.isNotEmpty) ...[
+                        SizedBox(height: 5),
+                        Text(
+                          '🎯 ${_buzzedPlayers.length} buzz(s)',
+                          style: TextStyle(color: Colors.blue, fontSize: 14),
+                        ),
+                      ],
                       // STATUT SERVEUR
                       // Dans la partie STATUT SERVEUR, remplace par :
                       Builder(

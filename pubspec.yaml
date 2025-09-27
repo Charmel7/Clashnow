@@ -1,5 +1,5 @@
 name: clashnow
-description: "Système de buzzers pour Génie en Herbe"
+description: Système de buzzers pour génie en herbe et autres jeux similaires
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -32,6 +32,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.5
+  #audioplayers: ^5.2.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -41,6 +42,14 @@ cupertino_icons: ^1.0.8
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icone.png"
+  adaptive_icon_background: "#FF6B35"
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -57,6 +66,9 @@ dev_dependencies:
 flutter:
   assets:
     - assets/fonts/
+    - assets/sounds/
+    - assets/icon/
+
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
