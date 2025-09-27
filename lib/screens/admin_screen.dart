@@ -13,22 +13,7 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  List<Map<String, dynamic>> players = [
-    {
-      'name': 'Joueur 1',
-      'team': 'ÉQUIPE A',
-      'score': 0,
-      'connected': true,
-      'id': 5,
-    },
-    {
-      'name': 'Joueur 2',
-      'team': 'ÉQUIPE B',
-      'score': 0,
-      'connected': true,
-      'id': 6,
-    },
-  ];
+  List<Map<String, dynamic>> players = [];
 
   String? _buzzedPlayer;
   String? _buzzedPlayerId;
@@ -168,73 +153,82 @@ class _AdminScreenState extends State<AdminScreen> {
   void _handleBuzzMessage(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
-    final playerId = message['playerId'] ?? playerName;
 
-    // PREMIER BUZZ
+    // TROUVER LE JOUEUR EXACT DANS LA LISTE
+    final playerIndex = players.indexWhere(
+      (p) => p['name'] == playerName && p['team'] == teamName,
+    );
+
+    if (playerIndex == -1) {
+      print('❌ Joueur $playerName ($teamName) non trouvé dans la liste');
+      return;
+    }
+
+    final actualPlayerId = players[playerIndex]['id'];
+
     if (!_waitingForAnswer && _firstBuzzerPlayerId == null) {
       setState(() {
-        _firstBuzzerPlayerId = playerId;
+        _firstBuzzerPlayerId = actualPlayerId;
         _waitingForAnswer = true;
         _buzzedPlayer = playerName;
-        _buzzedPlayerId = playerId;
-        _buzzedPlayers.add(playerId);
+        _buzzedPlayerId = actualPlayerId;
+        _buzzedPlayers.add(actualPlayerId);
       });
 
       _lockBuzzers();
-      //AudioService.playBuzz();
-
-      // CORRECTION : Appel direct sans callback
-      _showBuzzDialog(playerName, teamName, playerId);
+      _showBuzzDialog(playerName, teamName, actualPlayerId);
     } else {
-      // BUZZ SUIVANTS
-      if (!_buzzedPlayers.contains(playerId)) {
+      if (!_buzzedPlayers.contains(actualPlayerId)) {
         setState(() {
-          _buzzedPlayers.add(playerId);
+          _buzzedPlayers.add(actualPlayerId);
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$playerName a buzzé (en attente)'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
     }
   }
 
   void _showBuzzDialog(String playerName, String teamName, String playerId) {
+    // VERIFICATION FINALE AVANT OUVERTURE
+    final playerIndex = players.indexWhere((p) => p['id'] == playerId);
+    if (playerIndex == -1) {
+      print('❌ Dialogue annulé: joueur $playerId non trouvé');
+      _resetBuzz();
+      return;
+    }
+
     showDialog(
       context: context,
-      barrierDismissible: false, // ← EMPÊCHER DE FERMER SANS CHOIX
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('🎉 BUZZ !'),
+        title: Text('BUZZ !'),
         content: Text('$playerName ($teamName) a buzzé !'),
         actions: [
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _awardPoints(playerId, 10); // +10 points par défaut
+              _awardPoints(playerId, 10);
             },
-            child: const Text('+10 POINTS'),
+            child: Text('+10 POINTS'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _awardPoints(playerId, 5); // +5 points
+              _awardPoints(playerId, 5);
             },
-            child: const Text('+5 POINTS'),
+            child: Text('+5 POINTS'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _resetBuzz(); // Réinitialiser sans points
+              _resetBuzz();
             },
-            child: const Text('PASSER'),
+            child: Text('PASSER'),
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // Callback exécuté après la fermeture du dialogue
+      print('✅ Dialogue fermé pour $playerName');
+    });
   }
 
   void _startGame() {
