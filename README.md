@@ -1,16 +1,49 @@
-# clashnow
+# CLASHNOW - Système de Buzzers Temps Réel
 
-A new Flutter project.
+Une application Flutter pour gérer des buzzers en temps réel via WiFi local.
 
-## Getting Started
+## Fonctionnalités
 
-This project is a starting point for a Flutter application.
+- **Panel Admin** : Créer un salon, gérer les joueurs, attribuer des points
+- **Interface Joueur** : Se connecter à un salon, buzzer, voir son score
+- **Synchronisation Temps Réel** : Communication via sockets TCP
+- **Effets Sonores** : Sons pour les buzzers, les points, les pénalités
+- **Statistiques** : Scores par équipe, meilleur joueur, etc.
 
-A few resources to get you started if this is your first Flutter project:
+## Installation
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. Cloner le projet
+2. Exécuter `flutter pub get`
+3. Lancer l'application sur un appareil ou un émulateur
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Utilisation
+
+### Admin
+- Démarrer le serveur via le bouton "SERVER"
+- Partager l'IP affichée avec les joueurs
+- Démarrer la partie avec "START"
+- Gérer les buzzers et attribuer les points
+
+### Joueur
+- Saisir l'IP du serveur admin
+- Entrer son nom et choisir son équipe
+- Se connecter et buzzer quand la partie commence
+
+## Structure du Projet
+
+- `lib/screens/` : Écrans de l'application (admin, joueur, accueil)
+- `lib/services/` : Services réseau et audio
+- `lib/themes/` : Thème de l'application
+- `assets/sounds/` : Fichiers audio pour les effets sonores
+
+## Technologies Utilisées
+
+- Flutter
+- Dart
+- Sockets TCP
+- Provider (state management)
+
+
+## Licence
+
+MIT
