@@ -50,7 +50,7 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
         // ENVOYER LES INFOS JOUEUR APRÈS CONNEXION
         networkService.sendPlayerInfo(
           _nameController.text,
-          _selectedTeam ?? 'ÉQUIPE A',
+          _selectedTeam ?? 'EQUIPE A',
         ); // Si la connexion réussit
         setState(() {
           _connectionStatus = '✅ Connecté !';
@@ -65,7 +65,7 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
           '/player',
           arguments: {
             'playerName': _nameController.text,
-            'teamName': _selectedTeam ?? 'ÉQUIPE A',
+            'teamName': _selectedTeam ?? 'EQUIPE A',
           },
         );
       } catch (e) {
@@ -166,8 +166,8 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
               DropdownButtonFormField<String>(
                 value: _selectedTeam,
                 items: const [
-                  DropdownMenuItem(value: 'ÉQUIPE A', child: Text('ÉQUIPE A')),
-                  DropdownMenuItem(value: 'ÉQUIPE B', child: Text('ÉQUIPE B')),
+                  DropdownMenuItem(value: 'EQUIPE A', child: Text('ÉQUIPE A')),
+                  DropdownMenuItem(value: 'EQUIPE B', child: Text('ÉQUIPE B')),
                 ],
                 onChanged: (value) => setState(() => _selectedTeam = value),
                 decoration: const InputDecoration(

@@ -170,7 +170,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final teamName = message['teamName'];
     final playerId = message['playerId'] ?? playerName;
 
-    // SI C'EST LE PREMIER BUZZ
+    // PREMIER BUZZ
     if (!_waitingForAnswer && _firstBuzzerPlayerId == null) {
       setState(() {
         _firstBuzzerPlayerId = playerId;
@@ -180,25 +180,21 @@ class _AdminScreenState extends State<AdminScreen> {
         _buzzedPlayers.add(playerId);
       });
 
-      // BLOQUER IMMÉDIATEMENT TOUS LES BUZZERS
       _lockBuzzers();
+      //AudioService.playBuzz();
 
-      //  AudioService.playBuzz();
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showBuzzDialog(playerName, teamName, playerId);
-      });
+      // CORRECTION : Appel direct sans callback
+      _showBuzzDialog(playerName, teamName, playerId);
     } else {
-      // BUZZ SUIVANT - juste l'ajouter à la liste
+      // BUZZ SUIVANTS
       if (!_buzzedPlayers.contains(playerId)) {
         setState(() {
           _buzzedPlayers.add(playerId);
         });
 
-        // Notification pour les buzzs suivants (optionnel)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('⚠️ $playerName a buzzé (en attente)'),
+            content: Text('$playerName a buzzé (en attente)'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 2),
           ),
@@ -370,20 +366,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
         // Ajouter quelques joueurs de test
         setState(() {
-          players = [
-            {
-              'name': 'Joueur 1',
-              'team': 'ÉQUIPE A',
-              'score': 0,
-              'connected': true,
-            },
-            {
-              'name': 'Joueur 2',
-              'team': 'ÉQUIPE B',
-              'score': 0,
-              'connected': true,
-            },
-          ];
+          players = [];
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
