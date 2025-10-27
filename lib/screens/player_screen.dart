@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
-//import '../services/audio_service.dart';
 import '../services/network_service.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -21,32 +21,25 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   int score = 0;
   bool isBuzzerLocked = false;
-  /*
-  void buzz() {
-    if (!isBuzzerLocked) {
-      setState(() {
-        isBuzzerLocked = true;
-      });
+    final _audioPlayer = AudioPlayer();
 
-      // Simuler l'envoi du buzzer
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Buzz envoyé !'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Déverrouiller après 3 secondes
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            isBuzzerLocked = false;
-          });
-        }
-      });
-    }
-  }*/
   bool _isBuzzerLocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNetworkListener();
+    _initAudioPlayer();
+  }
+
+  Future<void> _initAudioPlayer() async {
+    try {
+      await _audioPlayer.setAsset('assets/sounds/1.mp3');
+    } catch (e) {
+      debugPrint("Error loading audio source: $e");
+    }
+  }
+
   void _sendBuzz() {
     // EMPÊCHER LE BUZZ SI DÉJÀ VERROUILLÉ
     if (_isBuzzerLocked) {
@@ -62,8 +55,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final networkService = Provider.of<NetworkService>(context, listen: false);
 
     try {
-      // AudioService.playBuzz();
       networkService.sendBuzz(widget.playerName, widget.teamName);
+      _audioPlayer.play();
+      _audioPlayer.seek(Duration.zero);
 
       setState(() {
         _isBuzzerLocked = true; // Verrouiller localement immédiatement
@@ -84,13 +78,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _setupNetworkListener();
-  }
-
-  // Dans _PlayerScreenState - MODIFIER le listener
   void _setupNetworkListener() {
     final networkService = Provider.of<NetworkService>(context, listen: false);
 
@@ -172,6 +159,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   Future<bool> _onWillPop() async {
     return await showDialog(
           context: context,
@@ -251,6 +244,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Center(
                 child: GestureDetector(
                   onTap: _sendBuzz,
+
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     width: 200,

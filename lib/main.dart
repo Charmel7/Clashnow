@@ -1,4 +1,3 @@
-import 'package:clashnow/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,12 +5,12 @@ import 'screens/admin_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/player_form_screen.dart';
 import 'screens/player_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/network_service.dart';
 import 'themes/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //AudioService.init();
   runApp(const MyApp());
 }
 
