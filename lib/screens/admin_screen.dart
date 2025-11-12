@@ -272,6 +272,8 @@ class _AdminScreenState extends State<AdminScreen> {
           'id': playerId,
           'score': 0,
           'penalties': 0,
+          'attempts': 0,
+          'success': 0,
           'connected': true,
         });
       });
@@ -592,6 +594,8 @@ class _AdminScreenState extends State<AdminScreen> {
           'team': teamName,
           'id': playerId,
           'score': 0,
+          'attempts': 0,
+          'success': 0,
           'penalties': 0,
           'connected': true,
         });
@@ -726,7 +730,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   // Ajoutez cette méthode
-  void _simulatePlayers() {
+  /*void _simulatePlayers() {
     print('🎮 Simulation de joueurs...');
 
     // Joueurs simulés
@@ -784,7 +788,7 @@ class _AdminScreenState extends State<AdminScreen> {
         'timestamp': DateTime.now().toIso8601String(),
       });
     });
-  }
+  }*/
 
   void _lockBuzzers() {
     // Envoyer un message pour bloquer les buzzers
