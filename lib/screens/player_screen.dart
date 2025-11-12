@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
@@ -20,16 +21,19 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   int score = 0;
-  bool isBuzzerLocked = false;
-    final _audioPlayer = AudioPlayer();
-
+  final _audioPlayer = AudioPlayer();
   bool _isBuzzerLocked = false;
+  final FocusNode _focusNode = FocusNode(); // To capture keyboard events
 
   @override
   void initState() {
     super.initState();
     _setupNetworkListener();
     _initAudioPlayer();
+    // Request focus to listen to keyboard events
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(_focusNode);
+    });
   }
 
   Future<void> _initAudioPlayer() async {
@@ -41,12 +45,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _sendBuzz() {
-    // EMPÊCHER LE BUZZ SI DÉJÀ VERROUILLÉ
+    // Prevent buzzing if already locked
     if (_isBuzzerLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('⏳ Attendez la question suivante...'),
           backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 1),
         ),
       );
       return;
@@ -59,21 +64,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _audioPlayer.play();
       _audioPlayer.seek(Duration.zero);
 
-      setState(() {
-        _isBuzzerLocked = true; // Verrouiller localement immédiatement
-      });
+      if (mounted) {
+        setState(() {
+          _isBuzzerLocked = true; // Lock locally immediately
+        });
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('🎉 Buzz envoyé ! En attente du premier buzzer...'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
         ),
       );
-
-      // NE PAS DÉVERROUILLER AUTOMATIQUEMENT - l'admin contrôle ça
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Erreur: $e'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('❌ Erreur de connexion. Veuillez réessayer.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 1),
+        ),
       );
     }
   }
@@ -83,7 +93,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     networkService.messages.listen((message) {
       if (message['type'] == 'score_update' || message['type'] == 'penalty') {
-        // METTRE À JOUR LE SCORE DU JOUEUR CONCERNÉ
+        // Update score for the concerned player
         if (message['playerName'] == widget.playerName) {
           final newScore =
               message['totalScore'] ?? (score + (message['points'] ?? 0));
@@ -103,6 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               backgroundColor: message['type'] == 'penalty'
                   ? Colors.orange
                   : Colors.green,
+              duration: const Duration(seconds: 1),
             ),
           );
         }
@@ -112,13 +123,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _isBuzzerLocked = message['locked'];
           });
 
-          // Feedback visuel selon l'état
           if (message['locked']) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('🔒 Buzzers verrouillés - Attente réponse admin'),
                 backgroundColor: Colors.orange,
-                duration: Duration(seconds: 3),
+                duration: Duration(seconds: 1),
               ),
             );
           }
@@ -130,9 +140,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('🎮 Partie démarrée ! Prêt à buzzer.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
           ),
         );
       } else if (message['type'] == 'next_question') {
@@ -147,6 +158,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               '➡️ Question ${message['questionNumber']} - Buzzers activés !',
             ),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
           ),
         );
       } else if (message['type'] == 'game_pause') {
@@ -162,6 +174,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _focusNode.dispose(); // Dispose the focus node
     super.dispose();
   }
 
@@ -188,101 +201,118 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.playerName),
-              Text(widget.teamName, style: const TextStyle(fontSize: 14)),
-            ],
-          ),
-          backgroundColor: Colors.blueGrey[800],
-        ),
-        body: Column(
-          children: [
-            // STATS DU JOUEUR
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          const Text('SCORE'),
-                          Text(
-                            '$score',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          const Text('ÉQUIPE'),
-                          Text(
-                            widget.teamName,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+    // Wrap the entire screen with RawKeyboardListener to capture space bar presses
+    return RawKeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.space) {
+          _sendBuzz();
+        }
+      },
+      child: WillPopScope(
+        onWillPop: _onWillPop,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.playerName),
+                Text(widget.teamName, style: const TextStyle(fontSize: 14)),
+              ],
             ),
-
-            // BUZZER
-            Expanded(
-              child: Center(
-                child: GestureDetector(
-                  onTap: _sendBuzz,
-
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: _isBuzzerLocked ? Colors.grey : Colors.red,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        if (!_isBuzzerLocked)
-                          BoxShadow(
-                            color: Colors.red.withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
+            backgroundColor: Colors.blueGrey[800],
+          ),
+          body: Column(
+            children: [
+              // Player stats
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            const Text('SCORE'),
+                            Text(
+                              '$score',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            const Text('ÉQUIPE'),
+                            Text(
+                              widget.teamName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    child: Icon(
-                      _isBuzzerLocked ? Icons.lock : Icons.volume_up,
-                      size: 60,
-                      color: Colors.white,
+                  ),
+                ),
+              ),
+
+              // Buzzer button
+              Expanded(
+                child: Center(
+                  child: GestureDetector(
+                    onTap: _sendBuzz,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: _isBuzzerLocked ? Colors.grey : Colors.red,
+                        shape: BoxShape.circle,
+                        boxShadow: _isBuzzerLocked
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.5),
+                                  blurRadius: 15,
+                                  spreadRadius: 3,
+                                ),
+                              ],
+                      ),
+                      child: AnimatedScale(
+                        scale: _isBuzzerLocked ? 0.9 : 1.0,
+                        duration: Duration(milliseconds: 100),
+                        child: Icon(
+                          _isBuzzerLocked ? Icons.lock : Icons.volume_up,
+                          size: 60,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // MESSAGE BUZZER
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                _isBuzzerLocked ? 'BUZZ ENVOYÉ' : 'APPUYEZ POUR BUZZER',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              // Buzzer message
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  _isBuzzerLocked ? 'BUZZ ENVOYÉ' : 'APPUYEZ POUR BUZZER',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

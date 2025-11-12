@@ -14,7 +14,7 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _ipController = TextEditingController(
-    text: '192.168.1.1',
+    text: '10.13.21.127',
   ); // IP par défaut
   String? _selectedTeam;
   bool _isConnecting = false;
@@ -23,7 +23,7 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
   @override
   void initState() {
     super.initState();
-    _ipController.text = '192.168.43.1'; // IP typique des hotspots Android
+    _ipController.text = '10.13.21.127'; // IP typique des hotspots Android
   }
 
   @override
@@ -92,8 +92,8 @@ class _PlayerFormScreenState extends State<PlayerFormScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _IPButton('192.168.43.1', _ipController),
-            _IPButton('192.168.1.1', _ipController),
+            _IPButton('10.13.21.127', _ipController),
+            _IPButton('172.20.10.2', _ipController),
             _IPButton('192.168.0.1', _ipController),
             _IPButton('192.168.1.100', _ipController),
           ],

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/network_service.dart';
@@ -21,9 +22,9 @@ class _AdminScreenState extends State<AdminScreen> {
   bool isGameStarted = false;
   int currentQuestion = 1;
   bool _isGamePaused = false;
-  String? _firstBuzzerPlayerId; // Premier joueur à buzzer
-  bool _waitingForAnswer = false; // En attente de réponse admin
-  List<String> _buzzedPlayers = []; // Liste des joueurs ayant buzzé
+  String? _firstBuzzerPlayerId;
+  bool _waitingForAnswer = false;
+  List<String> _buzzedPlayers = [];
   @override
   void initState() {
     super.initState();
@@ -83,6 +84,149 @@ class _AdminScreenState extends State<AdminScreen> {
         false;
   }
 
+  void _exportStatsToCSV() async {
+    try {
+      final now = DateTime.now();
+      final dateStr =
+          '${now.day}/${now.month}/${now.year} ${now.hour}h${now.minute}';
+
+      final StringBuffer csv = StringBuffer();
+
+      // En-tête avec date
+      csv.writeln('STATISTIQUES CLASHNOW - $dateStr');
+      csv.writeln('Question actuelle: $currentQuestion');
+      csv.writeln(
+        'Joueurs connectés: ${players.where((p) => p['connected'] == true).length}',
+      );
+      csv.writeln('');
+
+      // Calcul du topscorer
+      final topScorer = players.isNotEmpty
+          ? players.reduce(
+              (a, b) => (a['score'] ?? 0) > (b['score'] ?? 0) ? a : b,
+            )
+          : null;
+
+      // Topscores
+      csv.writeln('🏆 TOP SCORER');
+      if (topScorer != null) {
+        csv.writeln(
+          'Meilleur joueur: ${topScorer['name']} (${topScorer['team']})',
+        );
+        csv.writeln('Score: ${topScorer['score']} points');
+
+        // Efficacité du topscorer
+        final attempts = topScorer['attempts'] ?? 0;
+        final success = topScorer['success'] ?? 0;
+        final efficiency = attempts > 0
+            ? ((success / attempts) * 100).toStringAsFixed(1)
+            : '0.0';
+        csv.writeln('Efficacité: $success/$attempts (${efficiency}%)');
+      }
+      csv.writeln('');
+
+      // Classement individuel détaillé
+      csv.writeln('📊 CLASSEMENT INDIVIDUEL DÉTAILLÉ');
+      csv.writeln(
+        'Rang,Nom,Équipe,Score,Pénalités,Tentatives,Réussites,Efficacité',
+      );
+
+      final sortedPlayers = List.from(players)
+        ..sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
+
+      for (int i = 0; i < sortedPlayers.length; i++) {
+        final player = sortedPlayers[i];
+        final attempts = player['attempts'] ?? 0;
+        final success = player['success'] ?? 0;
+        final efficiency = attempts > 0
+            ? ((success / attempts) * 100).toStringAsFixed(1)
+            : '0.0';
+
+        csv.writeln(
+          '${i + 1},${player['name']},${player['team']},${player['score']},${player['penalties'] ?? 0},$attempts,$success,${efficiency}%',
+        );
+      }
+
+      // Scores par équipe
+      csv.writeln('\n👥 SCORES PAR ÉQUIPE');
+      csv.writeln('Équipe,Score total,Joueurs,Tentatives,Réussites,Efficacité');
+
+      final teams = _groupPlayersByTeam();
+      for (var team in teams.entries) {
+        final teamPlayers = team.value;
+        final teamScore = _getTeamScore(team.key);
+        final teamAttempts = teamPlayers.fold(
+          0,
+          (sum, player) => sum + (player['attempts'] as int ?? 0),
+        );
+        final teamSuccess = teamPlayers.fold(
+          0,
+          (sum, player) => sum + (player['success'] as int ?? 0),
+        );
+        final teamEfficiency = teamAttempts > 0
+            ? ((teamSuccess / teamAttempts) * 100).toStringAsFixed(1)
+            : '0.0';
+
+        csv.writeln(
+          '${team.key},$teamScore,${teamPlayers.length},$teamAttempts,$teamSuccess,${teamEfficiency}%',
+        );
+      }
+
+      // Métriques globales
+      csv.writeln('\n📈 MÉTRIQUES GLOBALES');
+      final totalPoints = players.fold(
+        0,
+        (sum, player) => sum + (player['score'] as int ?? 0),
+      );
+      final totalAttempts = players.fold(
+        0,
+        (sum, player) => sum + (player['attempts'] as int ?? 0),
+      );
+      final totalSuccess = players.fold(
+        0,
+        (sum, player) => sum + (player['success'] as int ?? 0),
+      );
+      final totalPenalties = players.fold(
+        0,
+        (sum, player) => sum + (player['penalties'] as int ?? 0),
+      );
+      final globalEfficiency = totalAttempts > 0
+          ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1)
+          : '0.0';
+
+      csv.writeln('Points totaux: $totalPoints');
+      csv.writeln('Tentatives totales: $totalAttempts');
+      csv.writeln('Réussites totales: $totalSuccess');
+      csv.writeln('Efficacité globale: ${globalEfficiency}%');
+      csv.writeln('Pénalités totales: $totalPenalties');
+      csv.writeln(
+        'Taux de réussite: ${totalAttempts > 0 ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1) : '0.0'}%',
+      );
+
+      // Partage
+      final text = csv.toString();
+      await Clipboard.setData(ClipboardData(text: text));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('📊 Statistiques copiées ($dateStr)'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'VOIR',
+            onPressed: () => _showEnhancedStatsPreview(text),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur export: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   int _getTeamScore(String teamName) {
     return players.where((player) => player['team'] == teamName).fold(0, (
       sum,
@@ -97,93 +241,365 @@ class _AdminScreenState extends State<AdminScreen> {
   void _handlePlayerJoin(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
-    final playerId =
-        message['playerId'] ??
-        DateTime.now().millisecondsSinceEpoch.toString(); // ← CORRECTION
+    final playerId = message['playerId'];
 
-    // Vérifier si le joueur existe déjà
-    if (players.any((p) => p['id'] == playerId)) return;
+    print('🎮 Nouveau joueur: $playerName ($teamName) - ID: $playerId');
 
-    setState(() {
-      players.add({
-        'name': playerName,
-        'team': teamName,
-        'id': playerId,
-        'score': 0,
-        'connected': true,
+    // Vérifier si le widget est toujours monté
+    if (!mounted) {
+      print('⚠️ Widget admin déjà désactivé - Ignorer joueur');
+      return;
+    }
+
+    final existingIndex = players.indexWhere((p) => p['id'] == playerId);
+
+    if (existingIndex != -1) {
+      // Joueur existe déjà, mettre à jour le statut
+      if (mounted) {
+        setState(() {
+          players[existingIndex]['connected'] = true;
+        });
+      }
+      return;
+    }
+
+    // Nouveau joueur
+    if (mounted) {
+      setState(() {
+        players.add({
+          'name': playerName,
+          'team': teamName,
+          'id': playerId,
+          'score': 0,
+          'penalties': 0,
+          'connected': true,
+        });
       });
-    });
+    }
   }
 
-  /*void _handleBuzzMessage(Map<String, dynamic> message) {
-    final playerName = message['playerName'];
-    final teamName = message['teamName'];
-    final playerId = message['id'];
+  void _showEnhancedStatsPreview(String csvText) {
+    // Calcul des métriques pour l'affichage
+    final sortedPlayers = List.from(players)
+      ..sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
 
-    setState(() {
-      _buzzedPlayer = playerName;
-    });
+    final topScorer = sortedPlayers.isNotEmpty ? sortedPlayers.first : null;
+    final totalPoints = players.fold(
+      0,
+      (sum, player) => sum + (player['score'] as int ?? 0),
+    );
+    final totalAttempts = players.fold(
+      0,
+      (sum, player) => sum + (player['attempts'] as int ?? 0),
+    );
+    final totalSuccess = players.fold(
+      0,
+      (sum, player) => sum + (player['success'] as int ?? 0),
+    );
+    final globalEfficiency = totalAttempts > 0
+        ? ((totalSuccess / totalAttempts) * 100)
+        : 0;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('🎉 BUZZ !'),
-        content: Text('$playerName ($teamName) a buzzé !'),
+        title: Row(
+          children: [
+            Icon(Icons.analytics, color: Colors.blue),
+            SizedBox(width: 10),
+            Text('📊 STATISTIQUES DÉTAILLÉES'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Tops Corner
+              if (topScorer != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '🏆 TOP SCORER',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[800],
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        '${topScorer['name']}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${topScorer['team']}',
+                        style: TextStyle(color: Colors.blue[600]),
+                      ),
+                      SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _StatChip('Score', '${topScorer['score']} pts'),
+                          _StatChip(
+                            'Tentatives',
+                            '${topScorer['attempts'] ?? 0}',
+                          ),
+                          _StatChip(
+                            'Réussites',
+                            '${topScorer['success'] ?? 0}',
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 5),
+                      if ((topScorer['attempts'] ?? 0) > 0)
+                        _StatChip(
+                          'Efficacité',
+                          '${((topScorer['success'] ?? 0) / (topScorer['attempts'] ?? 1) * 100).toStringAsFixed(1)}%',
+                        ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+              ],
+
+              // Métriques globales
+              Text(
+                '📈 MÉTRIQUES GLOBALES',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _StatChip('Points totaux', '$totalPoints')),
+                  Expanded(child: _StatChip('Tentatives', '$totalAttempts')),
+                ],
+              ),
+              SizedBox(height: 5),
+              Row(
+                children: [
+                  Expanded(child: _StatChip('Réussites', '$totalSuccess')),
+                  Expanded(
+                    child: _StatChip(
+                      'Efficacité',
+                      '${globalEfficiency.toStringAsFixed(1)}%',
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+
+              // Classement détaillé
+              Text(
+                '🎯 CLASSEMENT DÉTAILLÉ',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              ...sortedPlayers.asMap().entries.map((entry) {
+                final index = entry.key;
+                final player = entry.value;
+                final attempts = player['attempts'] ?? 0;
+                final success = player['success'] ?? 0;
+                final efficiency = attempts > 0
+                    ? ((success / attempts) * 100)
+                    : 0;
+
+                return Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: index == 0 ? Colors.amber[50] : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(),
+                  ),
+                  child: Row(
+                    children: [
+                      // Rang
+                      Container(
+                        width: 30,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: index == 0
+                                ? Colors.orange[800]
+                                : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      // Infos joueur
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              player['name'],
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              player['team'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Stats
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${player['score']} pts',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (attempts > 0)
+                            Text(
+                              '$success/$attempts (${efficiency.toStringAsFixed(1)}%)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+              SizedBox(height: 16),
+              Text(
+                'Les tentatives sont comptées pour le premier buzzer uniquement.',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[500],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              Text(
+                'Les réussites sont comptées quand des points positifs sont accordés.',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[500],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showPointsDialog(playerId);
-            },
-            child: const Text('ATTRIBUER POINTS'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _buzzedPlayer = null;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('IGNORER'),
+            onPressed: () => Navigator.pop(context),
+            child: Text('FERMER'),
           ),
         ],
       ),
     );
-  }*/
+  }
+
   void _handleBuzzMessage(Map<String, dynamic> message) {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
+    final timestamp = message['timestamp'];
 
-    // TROUVER LE JOUEUR EXACT DANS LA LISTE
+    print('🎯 Buzz reçu de: $playerName ($teamName) à $timestamp');
+
+    // Vérifier si le widget est monté
+    if (!mounted) {
+      print('⚠️ Widget admin désactivé - Ignorer buzz');
+      return;
+    }
+
+    // TROUVER LE JOUEUR EXACT DANS LA LISTE - recherche améliorée
     final playerIndex = players.indexWhere(
       (p) => p['name'] == playerName && p['team'] == teamName,
     );
 
     if (playerIndex == -1) {
       print('❌ Joueur $playerName ($teamName) non trouvé dans la liste');
+      print('📋 Tentative de récupération depuis l\'ID...');
+
+      // Tentative de récupération avec l'ID
+      final playerId = '${playerName}_$teamName';
+      final playerIndexById = players.indexWhere((p) => p['id'] == playerId);
+
+      if (playerIndexById != -1) {
+        print('✅ Joueur retrouvé par ID: $playerId');
+        _processBuzz(playerIndexById, playerName, teamName, playerId);
+      } else {
+        print('❌ Joueur complètement introuvable - Ajout automatique');
+        _addMissingPlayerAndProcessBuzz(playerName, teamName);
+      }
       return;
     }
 
     final actualPlayerId = players[playerIndex]['id'];
+    _processBuzz(playerIndex, playerName, teamName, actualPlayerId);
+  }
 
+  void _processBuzz(
+    int playerIndex,
+    String playerName,
+    String teamName,
+    String playerId,
+  ) {
     if (!_waitingForAnswer && _firstBuzzerPlayerId == null) {
-      setState(() {
-        _firstBuzzerPlayerId = actualPlayerId;
-        _waitingForAnswer = true;
-        _buzzedPlayer = playerName;
-        _buzzedPlayerId = actualPlayerId;
-        _buzzedPlayers.add(actualPlayerId);
-      });
+      print('🎉 Premier buzz: $playerName');
 
-      _lockBuzzers();
-      _showBuzzDialog(playerName, teamName, actualPlayerId);
-    } else {
-      if (!_buzzedPlayers.contains(actualPlayerId)) {
+      if (mounted) {
         setState(() {
-          _buzzedPlayers.add(actualPlayerId);
+          _firstBuzzerPlayerId = playerId;
+          _waitingForAnswer = true;
+          _buzzedPlayer = playerName;
+          _buzzedPlayerId = playerId;
+          _buzzedPlayers.add(playerId);
         });
       }
+
+      _lockBuzzers();
+      _showBuzzDialog(playerName, teamName, playerId);
+    } else {
+      if (!_buzzedPlayers.contains(playerId)) {
+        print('🔔 Buzz supplémentaire: $playerName');
+        if (mounted) {
+          setState(() {
+            _buzzedPlayers.add(playerId);
+          });
+        }
+      }
     }
+  }
+
+  void _addMissingPlayerAndProcessBuzz(String playerName, String teamName) {
+    final playerId = '${playerName}_$teamName';
+
+    if (mounted) {
+      setState(() {
+        players.add({
+          'name': playerName,
+          'team': teamName,
+          'id': playerId,
+          'score': 0,
+          'penalties': 0,
+          'connected': true,
+        });
+      });
+    }
+
+    print('✅ Joueur $playerName ajouté automatiquement');
+    _processBuzz(players.length - 1, playerName, teamName, playerId);
   }
 
   void _showBuzzDialog(String playerName, String teamName, String playerId) {
@@ -200,7 +616,54 @@ class _AdminScreenState extends State<AdminScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text('BUZZ !'),
-        content: Text('$playerName ($teamName) a buzzé !'),
+        content: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blueGrey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange[300]!, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange[100]!,
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Text.rich(
+            TextSpan(
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'SourceCodePro',
+                color: Colors.blueGrey[800],
+              ),
+              children: [
+                TextSpan(
+                  text: playerName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    color: Colors.orange[700],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                TextSpan(text: '\n'),
+                WidgetSpan(
+                  child: Icon(Icons.group, size: 16, color: Colors.blue[600]),
+                ),
+                TextSpan(
+                  text: ' $teamName',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
         actions: [
           ElevatedButton(
             onPressed: () {
@@ -234,28 +697,93 @@ class _AdminScreenState extends State<AdminScreen> {
   void _startGame() {
     if (!_serverStarted) return;
 
-    // RÉINITIALISER TOUT LE SYSTÈME DE BUZZ
-    _resetBuzz();
+    _resetBuzz(); // Réinitialiser le système de buzz
 
     setState(() {
       isGameStarted = true;
       currentQuestion = 1;
     });
 
-    //AudioService.playStart();
-
     final networkService = Provider.of<NetworkService>(context, listen: false);
     networkService.sendMessage({
       'type': 'game_start',
       'message': 'La partie commence !',
+      'questionNumber': currentQuestion,
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🎮 Partie démarrée ! Les buzzers sont actifs.'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    // Envoyer l'état initial à tous les joueurs
+    _sendGameStateToAll();
+  }
+
+  void _sendGameStateToAll() {
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'game_state',
+      'isGameStarted': isGameStarted,
+      'currentQuestion': currentQuestion,
+      'buzzerLocked': _waitingForAnswer,
+    });
+  }
+
+  // Ajoutez cette méthode
+  void _simulatePlayers() {
+    print('🎮 Simulation de joueurs...');
+
+    // Joueurs simulés
+    setState(() {
+      players = [
+        {
+          'id': 'john_equipe_a',
+          'name': 'John',
+          'team': 'EQUIPE A',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
+        {
+          'id': 'johne_equipe_a',
+          'name': 'Johne',
+          'team': 'EQUIPE A',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
+        {
+          'id': 'marie_equipe_b',
+          'name': 'Marie',
+          'team': 'EQUIPE B',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
+        {
+          'id': 'marier_equipe_b',
+          'name': 'Marier',
+          'team': 'EQUIPE B',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
+      ];
+    });
+
+    // Simuler un buzz après 3 secondes
+    Future.delayed(Duration(seconds: 3), () {
+      _handleBuzzMessage({
+        'type': 'buzz',
+        'playerName': 'John',
+        'teamName': 'EQUIPE A',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    });
   }
 
   void _lockBuzzers() {
@@ -294,6 +822,7 @@ class _AdminScreenState extends State<AdminScreen> {
       SnackBar(
         content: Text(_isGamePaused ? '⏸️ Jeu en pause' : '▶️ Jeu repris'),
         backgroundColor: _isGamePaused ? Colors.orange : Colors.green,
+        duration: Duration(seconds: 1),
       ),
     );
   }
@@ -317,6 +846,7 @@ class _AdminScreenState extends State<AdminScreen> {
       SnackBar(
         content: Text('➡️ Question $currentQuestion - Buzzers activés !'),
         backgroundColor: Colors.green,
+        duration: Duration(seconds: 1),
       ),
     );
   }
@@ -369,6 +899,7 @@ class _AdminScreenState extends State<AdminScreen> {
               '✅ Serveur démarré ! Les joueurs peuvent se connecter.',
             ),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
           ),
         );
       } catch (e) {
@@ -489,6 +1020,7 @@ class _AdminScreenState extends State<AdminScreen> {
           '⛔ Pénalité de 5 pts pour ${players[playerIndex]['name']}',
         ),
         backgroundColor: Colors.orange,
+        duration: Duration(seconds: 1),
       ),
     );
   }
@@ -516,8 +1048,8 @@ class _AdminScreenState extends State<AdminScreen> {
     Map<String, int> teamScores = {};
     for (var player in players) {
       String team = player['team'];
-      teamScores[team] =
-          (((teamScores[team] ?? 0) + (player['score'] ?? 0)) as num).toInt();
+      teamScores[team] = (((teamScores[team] ?? 0) + (player['score'] ?? 0)))
+          .toInt();
     }
 
     showDialog(
@@ -636,6 +1168,13 @@ class _AdminScreenState extends State<AdminScreen> {
                         ),
                       ],
 
+                      /*ElevatedButton(
+                        onPressed: _simulatePlayers,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                        ),
+                        child: const Text('TEST SIMULATION'),
+                      ),*/
                       if (_buzzedPlayers.isNotEmpty) ...[
                         SizedBox(height: 5),
                         Text(
@@ -711,8 +1250,8 @@ class _AdminScreenState extends State<AdminScreen> {
                   );
                 },
               ),
+
               // LISTE DES JOUEURS
-              // Dans le build method - REMPLACER la ListView actuelle
               Expanded(
                 child: Column(
                   children: [
@@ -825,17 +1364,16 @@ class _AdminScreenState extends State<AdminScreen> {
                       child: const Text('NEXT'),
                     ),
                   ),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: _exportStatsToCSV,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                    ),
+                    child: Icon(Icons.file_download, size: 20),
+                  ),
                 ],
               ),
-              /* const SizedBox(height: 0),
-              ElevatedButton(
-                onPressed: _simulateBuzz,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('TEST BUZZ'),
-              ),*/
             ],
           ),
         ),
@@ -860,6 +1398,33 @@ class _PointsButton extends StatelessWidget {
         minimumSize: const Size(double.infinity, 50),
       ),
       child: Text('${points > 0 ? '+' : ''}$points points'),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatChip(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }

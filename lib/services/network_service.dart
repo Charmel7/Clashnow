@@ -48,6 +48,8 @@ class NetworkService with ChangeNotifier {
           onDone: () {
             _clients.remove(client);
             client.close();
+            _removeClient(client);
+            print('📤 Client déconnecté');
           },
         );
       });
@@ -63,7 +65,13 @@ class NetworkService with ChangeNotifier {
   // REJOINDRE UN SALON (Joueur)
   Future<void> joinGame(String ipAddress) async {
     try {
-      final socket = await Socket.connect(ipAddress, 8080);
+      final socket = await Socket.connect(ipAddress, 8080).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          throw SocketException('Timeout de connexion');
+        },
+      );
+
       _isHost = false;
       _isConnected = true;
       _status = 'Connecté au salon';
@@ -72,15 +80,21 @@ class NetworkService with ChangeNotifier {
       // Écouter les messages du serveur
       socket.listen(
         (Uint8List data) {
-          final message = json.decode(String.fromCharCodes(data));
-          _messageController.add(Map<String, dynamic>.from(message));
+          try {
+            final message = json.decode(String.fromCharCodes(data));
+            _messageController.add(Map<String, dynamic>.from(message));
+          } catch (e) {
+            debugPrint('❌ Message JSON invalide: $e');
+          }
         },
         onError: (error) {
+          debugPrint('📡 Erreur connexion: $error');
           _isConnected = false;
-          _status = 'Déconnecté';
+          _status = 'Déconnecté - Erreur réseau';
           notifyListeners();
         },
         onDone: () {
+          debugPrint('🔌 Déconnecté par le serveur');
           _isConnected = false;
           _status = 'Déconnecté';
           notifyListeners();
@@ -88,11 +102,15 @@ class NetworkService with ChangeNotifier {
       );
 
       _clients.add(socket);
-      print('✅ Connecté au salon $ipAddress');
-    } catch (e) {
-      print('❌ Erreur connexion: $e');
-      _status = 'Erreur: $e';
+      print('✅ Connecté à $ipAddress:8080');
+    } on SocketException catch (e) {
+      _status = 'Erreur connexion';
       notifyListeners();
+      throw "Impossible de se connecter à $ipAddress:8080\n\nVérifiez :\n• L'IP du serveur admin\n• Le réseau WiFi commun\n• Le port 8080 disponible";
+    } catch (e) {
+      _status = 'Erreur inconnue';
+      notifyListeners();
+      throw "Erreur: $e";
     }
   }
 
@@ -117,11 +135,13 @@ class NetworkService with ChangeNotifier {
 
   //méthode pour envoyer les infos joueur après connexion
   void sendPlayerInfo(String playerName, String teamName) {
+    // UTILISER LE MÊME FORMAT D'ID QUE L'ADMIN
+    final playerId = '${playerName}_$teamName';
     sendMessage({
       'type': 'player_join',
       'playerName': playerName,
       'teamName': teamName,
-      'playerId': DateTime.now().millisecondsSinceEpoch.toString(), // ID unique
+      'playerId': playerId, // Même format que l'admin
     });
   }
 
@@ -133,6 +153,14 @@ class NetworkService with ChangeNotifier {
       'teamName': teamName,
       'timestamp': DateTime.now().toIso8601String(),
     });
+  }
+
+  //Pour Supprimer un client
+  // Ajouter cette méthode pour gérer la suppression des clients
+  void _removeClient(Socket client) {
+    _clients.remove(client);
+    _status = '${_clients.length} joueur(s) connecté(s)';
+    notifyListeners();
   }
 
   void disconnect() {
