@@ -322,29 +322,46 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: Center(
                   child: GestureDetector(
                     onTap: _sendBuzz,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 200,
-                      height: 200,
+                    child: // AMÉLIORER LE BUZZER PRINCIPAL
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 220,
+                      height: 220,
                       decoration: BoxDecoration(
-                        color: _isBuzzerLocked ? Colors.grey : Colors.red,
+                        color: _isBuzzerLocked
+                            ? Colors.grey[400]
+                            : Color(0xFFFF6D00),
                         shape: BoxShape.circle,
+                        gradient: _isBuzzerLocked
+                            ? null
+                            : LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFFFF9100), Color(0xFFFF6D00)],
+                              ),
                         boxShadow: _isBuzzerLocked
                             ? []
                             : [
                                 BoxShadow(
-                                  color: Colors.red.withOpacity(0.5),
-                                  blurRadius: 15,
-                                  spreadRadius: 3,
+                                  color: Color(0xFFFF6D00).withOpacity(0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                                BoxShadow(
+                                  color: Color(0xFFFF6D00).withOpacity(0.2),
+                                  blurRadius: 40,
+                                  spreadRadius: 10,
                                 ),
                               ],
                       ),
                       child: AnimatedScale(
                         scale: _isBuzzerLocked ? 0.9 : 1.0,
-                        duration: Duration(milliseconds: 100),
+                        duration: Duration(milliseconds: 200),
                         child: Icon(
-                          _isBuzzerLocked ? Icons.lock : Icons.volume_up,
-                          size: 60,
+                          _isBuzzerLocked
+                              ? Icons.lock_outline
+                              : Icons.volume_up,
+                          size: 70,
                           color: Colors.white,
                         ),
                       ),

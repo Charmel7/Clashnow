@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Guide CLASHNOW — Système de buzzers</title>
+    <style>
+        :root{
+          --primary:#1A237E;
+          --accent:#FF6D00;
+          --muted:#6b7280;
+          --bg:#f7f7f8;
+          --card:#ffffff;
+          --border:#e6e6e9;
+          --maxw:1100px;
+          --radius:10px;
+          font-family: "Segoe UI", Roboto, "Source Code Pro", Arial, sans-serif;
+        }
+
+        html,body{height:100%;margin:0;background:var(--bg);color:#222;}
+        .wrap{max-width:var(--maxw);margin:28px auto;padding:22px;}
+        header{background:var(--card);padding:18px 22px;border-radius:var(--radius);box-shadow:0 4px 14px rgba(20,20,30,0.05);border:1px solid var(--border);display:flex;gap:16px;align-items:center}
+        .logo{width:56px;height:56px;border-radius:8px;background:#f0f2f7;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+        h1{font-size:20px;margin:0;color:var(--primary)}
+        p.lead{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+        /* TOC */
+        nav.toc{margin-top:18px;background:transparent;padding:12px 0;display:flex;gap:16px;flex-wrap:wrap}
+        nav.toc a{color:var(--primary);text-decoration:none;font-weight:600;font-size:14px;border-bottom:2px solid transparent;padding-bottom:4px}
+        nav.toc a:hover{text-decoration:underline}
+
+        /* Sections */
+        section.card{background:var(--card);border-radius:10px;padding:22px;margin-top:18px;border:1px solid var(--border);box-shadow:0 6px 20px rgba(12,12,20,0.03)}
+        h2{color:var(--primary);margin:0 0 10px 0;font-size:18px}
+        h3{margin:18px 0 6px 0;color:#111;font-size:15px}
+        h4{margin:12px 0;color:var(--muted);font-size:14px}
+        p, li{font-size:14px;line-height:1.6;color:#222}
+        ul, ol{margin:10px 0 10px 20px}
+        .muted{color:var(--muted);font-size:13px}
+
+        /* Steps */
+        .step{border-left:4px solid var(--primary);padding:12px 16px;margin:14px 0;border-radius:6px;background:linear-gradient(90deg, rgba(26,35,126,0.02), transparent)}
+
+        /* placeholders for images */
+        .capture-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px}
+        figure.capture{background:#fbfbfc;border:1px dashed var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;box-sizing:border-box}
+        figure.capture .placeholder{width:100%;height:84px;border-radius:6px;background:linear-gradient(#ffffff,#fafafa);display:flex;align-items:center;justify-content:center;border:1px solid #eee;color:var(--muted);font-weight:600}
+        figure.capture figcaption{margin-top:10px;font-size:13px;color:var(--muted);text-align:center}
+
+        /* tip/warn boxes */
+        .tip{background:#eef6ff;border-left:4px solid var(--primary);padding:12px;border-radius:6px;margin:12px 0;color:#0b2a66}
+        .warn{background:#fff6f6;border-left:4px solid #e04343;padding:12px;border-radius:6px;margin:12px 0;color:#6a1b1b}
+
+        /* table */
+        table{width:100%;border-collapse:collapse;margin:14px 0}
+        th,td{padding:10px;border:1px solid var(--border);text-align:left;font-size:14px}
+        th{background:#fafafa;color:#111;font-weight:700}
+
+        /* footer */
+        footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+        @media (max-width:720px){header{flex-direction:column;align-items:flex-start}.logo{width:48px;height:48px}}
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <!-- Header -->
+    <header>
+        <div class="logo">CL</div>
+        <div>
+            <h1>Guide CLASHNOW — Système de buzzers</h1>
+            <p class="lead">Guide d'installation, d'animation et de dépannage (Admin Windows / Joueurs Android). Emplacements réservés pour captures d'écran inclus.</p>
+        </div>
+    </header>
+
+    <!-- Table of contents -->
+    <nav class="toc" aria-label="Table des matières">
+        <a href="#intro">Introduction</a>
+        <a href="#installation">Installation</a>
+        <a href="#admin">Guide Admin</a>
+        <a href="#joueur">Guide Joueur</a>
+        <a href="#avance">Fonctionnalités avancées</a>
+        <a href="#protocol">Protocole réseau</a>
+        <a href="#depannage">Dépannage</a>
+        <a href="#captures">Annexe — Captures réservées</a>
+        <a href="#faq">FAQ</a>
+    </nav>
+
+    <!-- Introduction -->
+    <section id="intro" class="card" aria-labelledby="intro-title">
+        <h2 id="intro-title">1. Introduction</h2>
+        <p>CLASHNOW remplace les buzzers physiques par une solution logicielle simple à déployer en réseau local. Le système sépare deux rôles : l'animateur (application Admin sur Windows) et les participants (application Joueur sur Android). Objectifs : rapidité de déploiement, traçabilité des scores, et gestion équitable des tours.</p>
+
+        <h3>Public et cas d'usage</h3>
+        <ul>
+            <li>Animateurs de clubs, professeurs et organisateurs d'événements.</li>
+            <li>Participants : adolescents et étudiants (usage pédagogique et ludique).</li>
+        </ul>
+
+        <h3>Avantages face aux buzzers physiques</h3>
+        <ul>
+            <li>Pas de matériel supplémentaire à acheter.</li>
+            <li>Export des statistiques, pénalités et verrouillages logiciels.</li>
+            <li>Possible simulation et tests depuis l'admin.</li>
+        </ul>
+    </section>
+
+    <!-- Installation -->
+    <section id="installation" class="card" aria-labelledby="install-title">
+        <h2 id="install-title">2. Installation</h2>
+
+        <h3>Prérequis</h3>
+        <table>
+            <thead><tr><th>Rôle</th><th>OS / Requis</th></tr></thead>
+            <tbody>
+            <tr><td>Admin</td><td>Windows 10+, port TCP 8080 ouvert, 100 MB libre</td></tr>
+            <tr><td>Joueurs</td><td>Android 7+ (APK), Wi-Fi sur le même réseau</td></tr>
+            </tbody>
+        </table>
+
+        <div class="step">
+            <h3>Étape A — Installer l'Admin (Windows)</h3>
+            <div>
+                <p><strong>Action :</strong> Décompressez <code>clashnow_windows.zip</code> et lancez l'exécutable. Autorisez le pare-feu si nécessaire.</p>
+                <div class="tip">Placez l'application dans un dossier local (pas sur lecteur réseau) pour éviter les problèmes de droits.</div>
+            </div>
+
+            <div class="capture-grid" aria-hidden="false">
+                <figure class="capture">
+                    <div class="placeholder">admin_server_off.png</div>
+                    <figcaption><strong>admin_server_off.png</strong> — Écran d'accueil avant démarrage du serveur (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">admin_server_on.png</div>
+                    <figcaption><strong>admin_server_on.png</strong> — Serveur démarré, IP affichée (placeholder)</figcaption>
+                </figure>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Étape B — Installer l'application Joueur (Android)</h3>
+            <div>
+                <p><strong>Action :</strong> Copiez <code>clashnow_android.apk</code> sur chaque appareil et installez (autoriser sources inconnues si demandé).</p>
+                <div class="capture-grid">
+                    <figure class="capture">
+                        <div class="placeholder">splash.png</div>
+                        <figcaption><strong>splash.png</strong> — Écran de démarrage de l'application (placeholder)</figcaption>
+                    </figure>
+                    <figure class="capture">
+                        <div class="placeholder">player_form.png</div>
+                        <figcaption><strong>player_form.png</strong> — Formulaire de connexion (placeholder)</figcaption>
+                    </figure>
+                </div>
+                <div class="warn">Important : tous les appareils doivent être sur le même réseau local. Ne pas inclure le port dans l'IP (côté joueur, saisir uniquement l'adresse IPv4 affichée par l'admin).</div>
+            </div>
+        </div>
+
+        <h3>Récapitulatif rapide</h3>
+        <ol>
+            <li>Démarrer l'admin sur la machine Windows (SERVER).</li>
+            <li>Noter l'IP affichée (ex. 10.13.21.127).</li>
+            <li>Les joueurs saisissent l'IP, leur nom et équipe, puis se connectent.</li>
+        </ol>
+    </section>
+
+    <!-- Guide Admin -->
+    <section id="admin" class="card" aria-labelledby="admin-title">
+        <h2 id="admin-title">3. Guide Admin</h2>
+
+        <div class="step">
+            <h3>Démarrer et préparer la partie</h3>
+            <p><strong>SERVER</strong> : lance le serveur TCP sur le port 8080. Après démarrage l'interface affiche l'IP et l'état « En attente de joueurs... ».</p>
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">home_screen.png</div>
+                    <figcaption><strong>home_screen.png</strong> — Dashboard admin (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">simulation_partie.png</div>
+                    <figcaption><strong>simulation_partie.png</strong> — Outil de simulation / test (placeholder)</figcaption>
+                </figure>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Contrôles de partie</h3>
+            <p>Utilisez les boutons : <strong>START</strong> (démarrer), <strong>NEXT</strong> (question suivante), <strong>PAUSE</strong> (suspendre), <strong>STATS</strong> (afficher statistiques), <strong>EXPORT</strong> (CSV).</p>
+
+            <table>
+                <thead><tr><th>Bouton</th><th>Fonction</th></tr></thead>
+                <tbody>
+                <tr><td>SERVER</td><td>Démarrer/arrêter le serveur</td></tr>
+                <tr><td>START</td><td>Début de la partie</td></tr>
+                <tr><td>NEXT</td><td>Question suivante (réinitialise les buzzers)</td></tr>
+                <tr><td>PAUSE</td><td>Suspendre la partie</td></tr>
+                <tr><td>STATS</td><td>Afficher statistiques détaillées</td></tr>
+                <tr><td>EXPORT</td><td>Exporter les résultats en CSV</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step">
+            <h3>Gestion des joueurs</h3>
+            <p>La liste des joueurs se met à jour en temps réel. Indicateur vert = connecté, rouge = déconnecté. Possibilité de désigner un capitaine via l'icône dédiée.</p>
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">joueurs_connectes.png</div>
+                    <figcaption><strong>joueurs_connectes.png</strong> — Liste des joueurs (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">captain_penalite.png</div>
+                    <figcaption><strong>captain_penalite.png</strong> — Gestion des capitaines / pénalités (placeholder)</figcaption>
+                </figure>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Réception d'un buzz et attribution des points</h3>
+            <p>À la réception d'un buzz, un modal s'affiche avec : nom du joueur, équipe, choix de points (+5, +10, +20, +30, +40) et option <strong>PASSER</strong> ou pénalité <strong>-10</strong>.</p>
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">buzz_score.png</div>
+                    <figcaption><strong>buzz_score.png</strong> — Dialogue de buzz (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">penalites.png</div>
+                    <figcaption><strong>penalites.png</strong> — Pénalités et options (placeholder)</figcaption>
+                </figure>
+            </div>
+
+            <div class="tip">Conseil : utilisez <strong>PASSER</strong> pour bloquer l'équipe actuelle après une mauvaise réponse et donner la chance à l'équipe adverse.</div>
+        </div>
+
+        <div class="step">
+            <h3>Statistiques et export</h3>
+            <p>Stats disponibles : scores individuels, agrégés d'équipe, temps de buzz, nombre de tentatives. Export CSV pour archivage ou analyse.</p>
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">stats_global.png</div>
+                    <figcaption><strong>stats_global.png</strong> — Vue globale (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">stats_details.png</div>
+                    <figcaption><strong>stats_details.png</strong> — Détails par joueur/équipe (placeholder)</figcaption>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- Guide Joueur -->
+    <section id="joueur" class="card" aria-labelledby="joueur-title">
+        <h2 id="joueur-title">4. Guide Joueur</h2>
+
+        <div class="step">
+            <h3>Connexion au salon</h3>
+            <ol>
+                <li>Ouvrez l'application.</li>
+                <li>Saisissez l'IP affichée par l'admin (ex. 10.13.21.127).</li>
+                <li>Entrez votre nom et choisissez une équipe (EQUIPE A / EQUIPE B).</li>
+                <li>Appuyez sur « Rejoindre ».</li>
+            </ol>
+
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">player_form_connected.png</div>
+                    <figcaption><strong>player_form_connected.png</strong> — Formulaire connecté (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">player_form_ready.png</div>
+                    <figcaption><strong>player_form_ready.png</strong> — Formulaire prêt (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">player_form_error.png</div>
+                    <figcaption><strong>player_form_error.png</strong> — Message d'erreur (placeholder)</figcaption>
+                </figure>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Écran buzzer et interaction</h3>
+            <p>Le joueur dispose d'un grand bouton \"buzzer\". La barre d'espace peut aussi déclencher le buzz sur les appareils avec clavier.</p>
+
+            <div class="capture-grid">
+                <figure class="capture">
+                    <div class="placeholder">buzzer_disponible.png</div>
+                    <figcaption><strong>buzzer_disponible.png</strong> — Buzzer actif (placeholder)</figcaption>
+                </figure>
+                <figure class="capture">
+                    <div class="placeholder">Buzzer_locked.png</div>
+                    <figcaption><strong>Buzzer_locked.png</strong> — Buzzer verrouillé après buzz (placeholder)</figcaption>
+                </figure>
+            </div>
+
+            <div class="tip">Si votre buzzer est verrouillé, attendez que l'admin clique sur NEXT ou déverrouille l'équipe.</div>
+        </div>
+
+        <div class="step">
+            <h3>Affichage du score</h3>
+            <p>Les mises à jour de score sont transmises via des messages JSON et s'affichent en temps réel sur l'écran joueur.</p>
+            <pre style="background:#fafafa;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:13px;overflow:auto">
+{
+  "type": "score_update",
+  "playerId": "John_EQUIPE A",
+  "points": 10,
+  "totalScore": 50
+}
+        </pre>
+        </div>
+    </section>
+
+    <!-- Fonctionnalités avancées -->
+    <section id="avance" class="card" aria-labelledby="avance-title">
+        <h2 id="avance-title">5. Fonctionnalités avancées</h2>
+
+        <h3>Système de capitaines</h3>
+        <p>Possibilité de désigner des capitaines ; affichage d'une icône dédiée et options de gestion spécifiques.</p>
+
+        <h3>Points et pénalités</h3>
+        <p>Points configurables selon la difficulté : +5, +10, +20, +30, +40 ; pénalité standard : -10.</p>
+
+        <h3>Verrouillage stratégique</h3>
+        <p>Après attribution d'un point, l'admin peut verrouiller/déverrouiller les équipes pour contrôler le flux des buzz.</p>
+    </section>
+
+    <!-- Protocole réseau -->
+    <section id="protocol" class="card" aria-labelledby="protocol-title">
+        <h2 id="protocol-title">6. Protocole réseau</h2>
+        <p>Communication via sockets TCP JSON sur le port 8080. Exemples de messages :</p>
+
+        <h4>Connexion joueur</h4>
+        <pre style="background:#fafafa;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:13px;overflow:auto">
+{
+  "type": "player_join",
+  "playerName": "John",
+  "teamName": "EQUIPE A",
+  "playerId": "John_EQUIPE A"
+}
+      </pre>
+
+        <h4>Buzz joueur</h4>
+        <pre style="background:#fafafa;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:13px;overflow:auto">
+{
+  "type": "buzz",
+  "playerName": "John",
+  "teamName": "EQUIPE A",
+  "timestamp": "2024-01-01T10:30:00Z"
+}
+      </pre>
+
+        <h4>Attribution de points</h4>
+        <pre style="background:#fafafa;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:13px;overflow:auto">
+{
+  "type": "score_update",
+  "playerId": "John_EQUIPE A",
+  "points": 10,
+  "totalScore": 50
+}
+      </pre>
+    </section>
+
+    <!-- Depannage -->
+    <section id="depannage" class="card" aria-labelledby="depannage-title">
+        <h2 id="depannage-title">7. Dépannage</h2>
+
+        <h3>Problèmes réseau courants</h3>
+        <ol>
+            <li>Vérifier que l'admin a bien cliqué sur <strong>SERVER</strong>.</li>
+            <li>Confirmer que l'IP saisie par les joueurs est exacte (pas de :8080).</li>
+            <li>Vérifier que l'ensemble des appareils est sur le même réseau Wi-Fi.</li>
+            <li>Vérifier le pare-feu Windows ou blocage du port 8080.</li>
+        </ol>
+
+        <h3>Bugs connus et solutions</h3>
+        <ul>
+            <li>Lenteur sur réseau encombré → basculer sur point d'accès dédié.</li>
+            <li>APK non installable → autoriser « sources inconnues », vérifier la signature.</li>
+            <li>Admin qui se fige → redémarrer l'application et exporter les stats régulièrement.</li>
+        </ul>
+
+        <div class="tip">Astuce : faire un test de simulation avant la partie complète (2–3 joueurs) pour vérifier la configuration réseau.</div>
+    </section>
+
+    <!-- Captures placeholders -->
+    <section id="captures" class="card" aria-labelledby="captures-title">
+        <h2 id="captures-title">Annexe — Emplacements réservés pour captures</h2>
+        <p>Placeholders des images fournies ; remplacez chaque cadre par l'image correspondante (chemin relatif <code>captures/</code>).</p>
+
+        <div class="capture-grid">
+            <figure class="capture"><div class="placeholder">app_icone.png</div><figcaption>app_icone.png — Icône de l'application</figcaption></figure>
+            <figure class="capture"><div class="placeholder">splash.png</div><figcaption>splash.png — Écran splash</figcaption></figure>
+            <figure class="capture"><div class="placeholder">home_screen.png</div><figcaption>home_screen.png — Dashboard admin</figcaption></figure>
+            <figure class="capture"><div class="placeholder">admin_server_off.png</div><figcaption>admin_server_off.png — Serveur inactif</figcaption></figure>
+            <figure class="capture"><div class="placeholder">admin_server_on.png</div><figcaption>admin_server_on.png — Serveur démarré</figcaption></figure>
+            <figure class="capture"><div class="placeholder">joueurs_connectes.png</div><figcaption>joueurs_connectes.png — Liste des joueurs</figcaption></figure>
+            <figure class="capture"><div class="placeholder">buzz_score.png</div><figcaption>buzz_score.png — Dialogue de buzz</figcaption></figure>
+            <figure class="capture"><div class="placeholder">penalites.png</div><figcaption>penalites.png — Options de pénalités</figcaption></figure>
+            <figure class="capture"><div class="placeholder">captain_penalite.png</div><figcaption>captain_penalite.png — Capitaine / pénalité</figcaption></figure>
+            <figure class="capture"><div class="placeholder">player_form.png</div><figcaption>player_form.png — Formulaire de connexion</figcaption></figure>
+            <figure class="capture"><div class="placeholder">player_form_connected.png</div><figcaption>player_form_connected.png — Formulaire connecté</figcaption></figure>
+            <figure class="capture"><div class="placeholder">player_form_error.png</div><figcaption>player_form_error.png — Erreur du formulaire</figcaption></figure>
+            <figure class="capture"><div class="placeholder">player_form_ready.png</div><figcaption>player_form_ready.png — Formulaire prêt</figcaption></figure>
+            <figure class="capture"><div class="placeholder">ecran_buzzer.png</div><figcaption>ecran_buzzer.png — Écran buzzer (placeholder)</figcaption></figure>
+            <figure class="capture"><div class="placeholder">buzzer_disponible.png</div><figcaption>buzzer_disponible.png — Buzzer disponible</figcaption></figure>
+            <figure class="capture"><div class="placeholder">Buzzer_locked.png</div><figcaption>Buzzer_locked.png — Buzzer verrouillé</figcaption></figure>
+            <figure class="capture"><div class="placeholder">stats_global.png</div><figcaption>stats_global.png — Statistiques globales</figcaption></figure>
+            <figure class="capture"><div class="placeholder">stats_details.png</div><figcaption>stats_details.png — Détails statistiques</figcaption></figure>
+            <figure class="capture"><div class="placeholder">simulation_partie.png</div><figcaption>simulation_partie.png — Simulation de partie</figcaption></figure>
+        </div>
+
+        <p class="muted" style="margin-top:12px">Remarque : les placeholders sont volontairement neutres pour faciliter la mise en page PDF. Remplacez <code>&lt;div class=\"placeholder\"&gt;nom.png&lt;/div&gt;</code> par un élément <code>&lt;img src=\"captures/nom.png\" alt=\"...\"/&gt;</code> lorsque les images seront disponibles.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="card" aria-labelledby="faq-title">
+        <h2 id="faq-title">FAQ</h2>
+        <h4>Combien de joueurs peuvent se connecter simultanément ?</h4>
+        <p>Aucun verrou strict, mais pour une expérience fluide 4–12 joueurs (2–6 par équipe) est recommandé, selon la qualité du réseau.</p>
+
+        <h4>L'application fonctionne-t-elle sur WAN ?</h4>
+        <p>Elle est conçue pour LAN. L'utilisation sur WAN nécessite routage/NAT et précautions de sécurité supplémentaires.</p>
+    </section>
+
+    <footer>
+        <p>Guide CLASHNOW — version générée. Pour une exportation PDF, ce HTML est prêt — remplacez les placeholders par vos images et exportez via votre navigateur (Fichier → Imprimer → Enregistrer en PDF) ou utilisez un outil d'export HTML→PDF pour conserver la mise en page.</p>
+    </footer>
+
+</div>
+
+<script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('nav.toc a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        const tgt = document.querySelector(this.getAttribute('href'));
+        if(tgt) tgt.scrollIntoView({behavior:'smooth',block:'start'});
+      });
+    });
+</script>
+</body>
+</html>

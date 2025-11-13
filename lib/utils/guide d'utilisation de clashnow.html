@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide CLASHNOW - Système de Buzzers Numérique</title>
+    <style>
+        :root {
+            --primary: #1A237E;
+            --secondary: #FF6D00;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --error: #F44336;
+            --bg-light: #F5F5F5;
+            --bg-white: #FFFFFF;
+            --text-dark: #333333;
+            --text-light: #666666;
+            --border-color: #DDDDDD;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text-dark);
+            background-color: var(--bg-light);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #283593 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .header .logo {
+            width: 80px;
+            height: 80px;
+            background: var(--secondary);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            box-shadow: 0 6px 20px rgba(255, 109, 0, 0.4);
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: var(--bg-white);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0;
+        }
+
+        .nav a {
+            color: var(--text-dark);
+            text-decoration: none;
+            padding: 18px 25px;
+            display: block;
+            transition: all 0.3s;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav a:hover {
+            background-color: var(--bg-light);
+            color: var(--primary);
+            border-bottom-color: var(--secondary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Sections */
+        .section {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+
+        .section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .section h2 {
+            color: var(--primary);
+            font-size: 2.2em;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section h3 {
+            color: var(--primary);
+            font-size: 1.6em;
+            margin: 30px 0 15px 0;
+        }
+
+        .section h4 {
+            color: var(--secondary);
+            font-size: 1.3em;
+            margin: 20px 0 10px 0;
+        }
+
+        /* Steps */
+        .step {
+            background: #F8F9FA;
+            border-left: 5px solid var(--primary);
+            padding: 25px;
+            margin-bottom: 30px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 1.1em;
+        }
+
+        .step h3 {
+            display: inline;
+            color: var(--primary);
+            font-size: 1.4em;
+        }
+
+        .step-content {
+            margin-top: 15px;
+            padding-left: 47px;
+        }
+
+        .step p {
+            margin: 12px 0;
+            line-height: 1.8;
+        }
+
+        /* Screenshots */
+        .screenshot {
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            margin: 20px 0;
+            max-width: 100%;
+            display: block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .screenshot:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .screenshot-caption {
+            font-style: italic;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.95em;
+        }
+
+        /* Tips and Warnings */
+        .tip, .warning, .info {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 5px solid;
+        }
+
+        .tip {
+            background: #E3F2FD;
+            border-left-color: var(--primary);
+        }
+
+        .warning {
+            background: #FFEBEE;
+            border-left-color: var(--error);
+        }
+
+        .info {
+            background: #FFF3E0;
+            border-left-color: var(--warning);
+        }
+
+        .tip strong, .warning strong, .info strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background-color: var(--bg-light);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .card {
+            background: var(--bg-light);
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .card h4 {
+            margin-top: 0;
+        }
+
+        /* Feature List */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 12px 0;
+            padding-left: 35px;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success);
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+
+        /* FAQ */
+        .faq-item {
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            background: var(--bg-light);
+            padding: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .faq-question:hover {
+            background: #E8EAF6;
+        }
+
+        .faq-answer {
+            padding: 18px;
+            background: white;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 60px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .section {
+                padding: 25px;
+            }
+
+            .nav a {
+                padding: 12px 15px;
+                font-size: 0.9em;
+            }
+
+            .step-content {
+                padding-left: 0;
+            }
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 12px 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--secondary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+    <div class="logo">⚡</div>
+    <h1>CLASHNOW</h1>
+    <p class="subtitle">Système de Buzzers Numérique pour Club de Génie en Herbe</p>
+</div>
+
+<!-- Navigation -->
+<div class="nav-container">
+    <nav class="nav">
+        <a href="#introduction">Introduction</a>
+        <a href="#installation">Installation</a>
+        <a href="#admin">Guide Admin</a>
+        <a href="#joueur">Guide Joueur</a>
+        <a href="#avance">Fonctionnalités</a>
+        <a href="#depannage">Dépannage</a>
+    </nav>
+</div>
+
+<!-- Container -->
+<div class="container">
+
+    <!-- Introduction -->
+    <section id="introduction" class="section">
+        <h2> Introduction</h2>
+
+        <h3>Qu'est-ce que CLASHNOW ?</h3>
+        <p>CLASHNOW est une application moderne qui remplace les buzzers physiques traditionnels pour les compétitions de génie en herbe. Elle permet aux clubs et écoles d'organiser des quiz interactifs en équipe avec un système de buzz numérique professionnel.</p>
+
+        <h3>Pourquoi choisir CLASHNOW ?</h3>
+        <div class="grid">
+            <div class="card">
+                <h4>💰 Économique</h4>
+                <p>Plus besoin d'acheter du matériel coûteux. Utilisez simplement vos appareils existants.</p>
+            </div>
+            <div class="card">
+                <h4>📱 Flexible</h4>
+                <p>Fonctionne sur Windows (admin) et Android (joueurs). Connexion via WiFi local.</p>
+            </div>
+            <div class="card">
+                <h4>📊 Complet</h4>
+                <p>Statistiques détaillées, export CSV, gestion des capitaines, et bien plus.</p>
+            </div>
+            <div class="card">
+                <h4>⚡ Instantané</h4>
+                <p>Buzz en temps réel avec affichage immédiat du premier joueur.</p>
+            </div>
+        </div>
+
+        <h3>Public cible</h3>
+        <ul class="feature-list">
+            <li>Clubs de génie en herbe</li>
+            <li>Établissements scolaires</li>
+            <li>Animateurs de quiz</li>
+            <li>Organisateurs d'événements éducatifs</li>
+        </ul>
+
+        <h3>Architecture du système</h3>
+        <div class="info">
+            <strong>ℹ️ Fonctionnement</strong>
+            <p><strong>Application Admin (Windows)</strong> : Crée le serveur et contrôle la partie</p>
+            <p><strong>Applications Joueurs (Android)</strong> : Se connectent au serveur via IP</p>
+            <p><strong>Communication</strong> : Réseau local WiFi sur le port 8080</p>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="installation" class="section">
+        <h2>📥 Installation</h2>
+
+        <h3>Prérequis système</h3>
+
+        <h4>Pour l'admin (animateur)</h4>
+        <table>
+            <tr>
+                <th>Élément</th>
+                <th>Requis</th>
+            </tr>
+            <tr>
+                <td>Système d'exploitation</td>
+                <td>Windows 10 ou supérieur</td>
+            </tr>
+            <tr>
+                <td>Connexion réseau</td>
+                <td>WiFi ou Ethernet</td>
+            </tr>
+            <tr>
+                <td>Espace disque</td>
+                <td>50 MB maximum</td>
+            </tr>
+        </table>
+
+        <h4>Pour les joueurs</h4>
+        <table>
+            <tr>
+                <th>Élément</th>
+                <th>Requis</th>
+            </tr>
+            <tr>
+                <td>Système d'exploitation</td>
+                <td>Android 8.0 ou supérieur</td>
+            </tr>
+            <tr>
+                <td>Connexion réseau</td>
+                <td>WiFi (même réseau que l'admin)</td>
+            </tr>
+            <tr>
+                <td>Espace disque</td>
+                <td>50 MB maximum</td>
+            </tr>
+        </table>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <h3>Installation sur Windows (Admin)</h3>
+            <div class="step-content">
+                <img src="Clashnow/splash.png" alt="Écran d'accueil CLASHNOW" class="screenshot">
+                <div class="screenshot-caption">Écran d'accueil / splash de l'application CLASHNOW</div>
+                <p><strong>Action :</strong> Télécharger et extraire le fichier <code>clashnow.zip</code></p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Téléchargez le fichier ZIP depuis la source fournie</li>
+                    <li>Faites un clic droit sur le fichier et sélectionnez "Extraire tout..."</li>
+                    <li>Choisissez un emplacement (ex: Bureau ou Documents)</li>
+                    <li>Double-cliquez sur <code>clashnow.exe</code> pour lancer l'application</li>
+                </ol>
+
+                <div class="tip">
+                    <strong>💡 Conseil</strong>
+                    Consultez les statistiques régulièrement pendant la partie pour suivre la progression des équipes et identifier les meilleurs joueurs.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">7</span>
+            <h3>Exporter les résultats</h3>
+            <div class="step-content">
+                <p><strong>Action :</strong> Cliquer sur le bouton <strong>"EXPORT"</strong> (icône 💾)</p>
+
+                <p><strong>Résultat :</strong></p>
+                <ul class="feature-list">
+                    <li>Une fiche statistique est générée automatiquement</li>
+                    <li>Contient tous les scores et statistiques</li>
+                    <li>Disponible dans le presse-papier</li>
+                    <li>Idéal pour conserver un historique des parties</li>
+                </ul>
+
+                <div class="info">
+                    <strong>ℹ️ Utilité de l'export</strong>
+                    La copie vous permet d'analyser les performances, créer des graphiques, ou partager les résultats avec les participants.
+                </div>
+            </div>
+        </div>
+
+        <h3>Résumé des boutons admin</h3>
+        <table>
+            <tr>
+                <th>Bouton</th>
+                <th>Fonction</th>
+                <th>Quand l'utiliser</th>
+            </tr>
+            <tr>
+                <td><strong>SERVER</strong></td>
+                <td>Démarre le serveur</td>
+                <td>Au tout début, avant l'arrivée des joueurs</td>
+            </tr>
+            <tr>
+                <td><strong>START</strong></td>
+                <td>Lance la partie</td>
+                <td>Quand tous les joueurs sont connectés</td>
+            </tr>
+            <tr>
+                <td><strong>PAUSE</strong></td>
+                <td>Met en pause</td>
+                <td>Pour une interruption temporaire</td>
+            </tr>
+            <tr>
+                <td><strong>NEXT</strong></td>
+                <td>Question suivante</td>
+                <td>Après avoir attribué les points de la question actuelle</td>
+            </tr>
+            <tr>
+                <td><strong>STATS</strong> 📊</td>
+                <td>Affiche les statistiques</td>
+                <td>À tout moment pour voir le classement</td>
+            </tr>
+            <tr>
+                <td><strong>EXPORT</strong> 💾</td>
+                <td>Exporte les stats</td>
+                <td>En fin de partie ou pour sauvegarder</td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- Guide Joueur -->
+    <section id="joueur" class="section">
+        <h2>📱 Guide Joueur</h2>
+
+        <p>L'application joueur est simple et intuitive. Elle permet de se connecter au salon et de buzzer rapidement.</p>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <h3>Lancer l'application</h3>
+            <div class="step-content">
+                <img src="Clashnow/home_screen.png" alt="Écran d'accueil joueur" class="screenshot">
+                <div class="screenshot-caption">Écran d'accueil côté joueur</div>
+                <p><strong>Action :</strong> Ouvrir l'application CLASHNOW sur votre appareil Android</p>
+
+                <p>Vous arrivez sur l'écran d'accueil avec deux options :</p>
+                <ul class="feature-list">
+                    <li><strong>CRÉER SALON</strong> : (Non utilisé côté joueur)</li>
+                    <li><strong>REJOINDRE SALON</strong> : Cliquez ici pour vous connecter</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <h3>Remplir le formulaire de connexion</h3>
+            <div class="step-content">
+                <img src="Clashnow/player_form.png" alt="Formulaire de connexion joueur - vide" class="screenshot">
+                <div class="screenshot-caption">Formulaire de connexion (vide)</div>
+                <p><strong>Action :</strong> Entrer vos informations de connexion</p>
+
+                <h4>Champs à remplir :</h4>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>IP DU SERVEUR ADMIN</strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>Entrez l'adresse IP affichée sur l'écran admin</li>
+                            <li>Exemple : 10.13.21.127 ou 172.20.10.5</li>
+                            <li>Ne pas inclure le :8080, seulement l'IP</li>
+                        </ul>
+                    </li>
+                    <li><strong>VOTRE NOM</strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>Choisissez un nom ou pseudo</li>
+                            <li>Ce nom apparaîtra à l'écran quand vous buzzez</li>
+                            <li>Exemple : Emilien, Alice, Bob, etc.</li>
+                        </ul>
+                    </li>
+                    <li><strong>ÉQUIPE</strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li>Sélectionnez EQUIPE A ou EQUIPE B</li>
+                            <li>Utilisez le menu déroulant</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <div class="tip">
+                    <strong>💡 Conseil</strong>
+                    Demandez à l'animateur de vous donner l'IP exacte et votre équipe assignée avant de commencer.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <h3>Se connecter au salon</h3>
+            <div class="step-content">
+                <img src="Clashnow/player_form_connected.png" alt="Connexion réussie - joueur connecté" class="screenshot">
+                <div class="screenshot-caption">Connexion réussie : le joueur est connecté au salon</div>
+                <p><strong>Action :</strong> Cliquer sur le bouton <strong>"SE CONNECTER AU SALON"</strong></p>
+
+                <p><strong>Connexion réussie :</strong></p>
+                <ul class="feature-list">
+                    <li>Message "Connecté !" s'affiche avec une coche verte ✓</li>
+                    <li>Vous êtes redirigé vers l'écran de buzzer</li>
+                    <li>Votre nom apparaît sur l'écran admin</li>
+                </ul>
+
+                <img src="Clashnow/player_form_error.png" alt="Erreur de connexion" class="screenshot">
+                <div class="screenshot-caption">Erreur de connexion : vérifiez l'IP et le réseau</div>
+                <p><strong>Erreur de connexion :</strong></p>
+                <p>Si un message d'erreur rouge apparaît :</p>
+                <ul style="margin-left: 20px;">
+                    <li><strong>"Impossible de se connecter à [IP]:8080"</strong></li>
+                    <li>Vérifiez l'IP du serveur admin (pas d'erreur de frappe)</li>
+                    <li>Vérifiez que vous êtes sur le même réseau WiFi</li>
+                    <li>Vérifiez que le serveur admin est bien démarré (bouton SERVER cliqué)</li>
+                    <li>Assurez-vous que le port 8080 n'est pas bloqué</li>
+                </ul>
+
+                <div class="warning">
+                    <strong>⚠️ Problème courant</strong>
+                    Si vous ne pouvez pas vous connecter, le problème vient souvent d'un réseau WiFi différent. Vérifiez que tous les appareils sont sur le MÊME réseau.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <h3>Utiliser le buzzer</h3>
+            <div class="step-content">
+                <img src="Clashnow/buzzer_disponible.png" alt="Buzzer actif" class="screenshot">
+                <div class="screenshot-caption">Buzzer actif (prêt à buzzer)</div>
+                <img src="Clashnow/Buzzer_locked.png" alt="Buzzer verrouillé" class="screenshot">
+                <div class="screenshot-caption">Buzzer verrouillé après un buzz</div>
+                <p><strong>Interface de jeu :</strong></p>
+                <p>L'écran affiche :</p>
+                <ul class="feature-list">
+                    <li><strong>Votre nom</strong> en haut</li>
+                    <li><strong>Votre équipe</strong> (EQUIPE A ou B)</li>
+                    <li><strong>Votre score personnel</strong></li>
+                    <li><strong>Le gros bouton buzzer</strong> au centre</li>
+                    <li><strong>Message en bas</strong> : "APPUYEZ POUR BUZZER"</li>
+                </ul>
+
+                <h4>États du buzzer :</h4>
+
+                <p><strong>🔴 Buzzer actif (rouge) :</strong></p>
+                <ul class="feature-list">
+                    <li>Vous pouvez appuyer pour buzzer</li>
+                    <li>Le bouton est grand et rouge avec icône de son 🔊</li>
+                    <li>Message : "APPUYEZ POUR BUZZER"</li>
+                </ul>
+
+                <p><strong>🔒 Buzzer verrouillé (gris) :</strong></p>
+                <ul class="feature-list">
+                    <li>Vous ne pouvez pas buzzer</li>
+                    <li>Le bouton est gris avec icône de cadenas 🔒</li>
+                    <li>Message : "Buzz envoyé ! En attente du premier buzzer..."</li>
+                    <li>Apparaît après que vous ou votre équipe avez buzzé</li>
+                </ul>
+
+                <div class="tip">
+                    <strong>💡 Astuce de rapidité</strong>
+                    Soyez prêt ! Le premier à buzzer a la priorité. Gardez votre doigt près du bouton dès que la question est posée.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            <h3>Suivre votre score</h3>
+            <div class="step-content">
+                <p>Votre score personnel est affiché en temps réel en haut de l'écran.</p>
+
+                <p><strong>Mise à jour du score :</strong></p>
+                <ul class="feature-list">
+                    <li>Après chaque buzz, l'admin attribue des points</li>
+                    <li>Votre score se met à jour automatiquement</li>
+                    <li>Les points peuvent être positifs (+10, +20, etc.) ou négatifs (-10)</li>
+                </ul>
+
+                <div class="info">
+                    <strong>ℹ️ Score d'équipe</strong>
+                    Le score de votre équipe est visible sur l'écran admin. Seul votre score personnel s'affiche sur votre appareil.
+                </div>
+            </div>
+        </div>
+
+        <h3>Résumé de l'expérience joueur</h3>
+        <div class="grid">
+            <div class="card">
+                <h4>1️⃣ Connexion</h4>
+                <p>Entrez l'IP, votre nom et votre équipe, puis connectez-vous.</p>
+            </div>
+            <div class="card">
+                <h4>2️⃣ Attente</h4>
+                <p>Attendez que l'admin démarre la partie. Votre buzzer sera alors actif.</p>
+            </div>
+            <div class="card">
+                <h4>3️⃣ Jeu</h4>
+                <p>Écoutez les questions et buzzez le plus vite possible quand vous connaissez la réponse.</p>
+            </div>
+            <div class="card">
+                <h4>4️⃣ Scores</h4>
+                <p>Suivez votre progression et tentez de devenir le top scorer !</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fonctionnalités avancées -->
+    <section id="avance" class="section">
+        <h2>⚡ Fonctionnalités Avancées</h2>
+
+        <h3>Système de capitaines</h3>
+        <img src="Clashnow/captain_penalite.png" alt="Joueur capitaine" class="screenshot">
+        <div class="screenshot-caption">Capitaine d'équipe (étoile / couronne)</div>
+        <p>Les capitaines d'équipe ont une étoile ⭐ affichée à côté de leur nom.</p>
+
+        <h4>Comment désigner un capitaine :</h4>
+        <ol style="margin-left: 20px;">
+            <li>Cliquez sur le nom d'un joueur dans la liste admin</li>
+            <li>Un menu d'options apparaît</li>
+            <li>Sélectionnez <strong>"Désigner comme capitaine"</strong></li>
+            <li>L'étoile ⭐ apparaît à côté de son nom</li>
+        </ol>
+
+        <div class="info">
+            <strong>ℹ️ Rôle du capitaine</strong>
+            Le statut de capitaine est principalement honorifique. Il peut servir à identifier le porte-parole de l'équipe (ou le joueur le plus expérimenté).
+        </div>
+
+        <h3>Système de points flexible</h3>
+        <p>L'admin peut attribuer différents points selon la difficulté de la question :</p>
+
+        <table>
+            <tr>
+                <th>Points</th>
+                <th>Utilisation suggérée</th>
+            </tr>
+            <tr>
+                <td><strong>+5 points</strong></td>
+                <td>Bonus pour réponse partielle ou question bonus facile</td>
+            </tr>
+            <tr>
+                <td><strong>+10 points</strong></td>
+                <td>Question standard de difficulté normale</td>
+            </tr>
+            <tr>
+                <td><strong>+20 points</strong></td>
+                <td>Question de difficulté moyenne ou identification</td>
+            </tr>
+            <tr>
+                <td><strong>+30 points</strong></td>
+                <td>Question difficileou identification</td>
+            </tr>
+            <tr>
+                <td><strong>+40 points</strong></td>
+                <td>Question très difficile ou identification</td>
+            </tr>
+            <tr>
+                <td><strong>-10 points</strong></td>
+                <td>Pénalité pour mauvaise réponse ou mauvaise conduite de joueur</td>
+            </tr>
+        </table>
+
+        <h3>Gestion du verrouillage stratégique</h3>
+        <img src="Clashnow/simulation_partie.png" alt="Dialogue options admin / simulation" class="screenshot">
+        <div class="screenshot-caption">Dialogue d'options admin et boutons de simulation</div>
+        <img src="Clashnow/penalites.png" alt="Pénalités et options - admin" class="screenshot">
+        <div class="screenshot-caption">Gestion des pénalités et options lors d'un buzz</div>
+        <p>Le système de verrouillage permet une gestion équitable des buzz :</p>
+
+        <h4>Scénario 1 : Réponse correcte</h4>
+        <ol style="margin-left: 20px;">
+            <li>Un joueur de l'EQUIPE A buzz</li>
+            <li>Il donne la bonne réponse</li>
+            <li>L'admin attribue les points (+10, +20, etc.)</li>
+            <li>TOUS les buzzers se verrouillent</li>
+            <li>L'admin clique sur NEXT pour la question suivante</li>
+        </ol>
+
+        <h4>Scénario 2 : Réponse incorrecte avec option PASSER</h4>
+        <ol style="margin-left: 20px;">
+            <li>Un joueur de l'EQUIPE A buzz</li>
+            <li>Il donne une mauvaise réponse</li>
+            <li>L'admin clique sur <strong>PASSER</strong></li>
+            <li>L'EQUIPE A est verrouillée (ne peut plus buzzer)</li>
+            <li>L'EQUIPE B est déverrouillée (peut buzzer)</li>
+            <li>Si l'EQUIPE B répond correctement, elle gagne les points</li>
+        </ol>
+
+        <h4>Scénario 3 : Pénalité immédiate</h4>
+        <ol style="margin-left: 20px;">
+            <li>Un joueur buzz avec une mauvaise réponse</li>
+            <li>L'admin clique sur <strong>-10 POINTS</strong></li>
+            <li>Le joueur perd 10 points</li>
+            <li>Son équipe perd également 10 points</li>
+            <li>Tous les buzzers se verrouillent</li>
+        </ol>
+
+        <div class="tip">
+            <strong>💡 Stratégie d'animation</strong>
+            Utilisez PASSER pour donner une réplique à l'autre équipe. Utilisez -10 pour pénaliser les réponses complètement fausses ou les mauvaises conduites.
+        </div>
+
+        <h3>Statistiques détaillées</h3>
+        <img src="Clashnow/stats_details.png" alt="Statistiques détaillées" class="screenshot">
+        <div class="screenshot-caption">Statistiques détaillées du match</div>
+        <p>Le panneau de statistiques offre une analyse complète de la partie :</p>
+
+        <h4>Métriques individuelles :</h4>
+        <ul class="feature-list">
+            <li><strong>Tentatives</strong> : Nombre de fois où le joueur a buzzé</li>
+            <li><strong>Réussites</strong> : Nombre de bonnes réponses</li>
+            <li><strong>Efficacité</strong> : Pourcentage de réussite (Réussites / Tentatives × 100)</li>
+            <li><strong>Score</strong> : Points totaux accumulés</li>
+        </ul>
+
+        <h4>Métriques d'équipe :</h4>
+        <ul class="feature-list">
+            <li>Score total de chaque équipe</li>
+            <li>Nombre de tentatives par équipe</li>
+            <li>Taux de réussite global par équipe</li>
+        </ul>
+
+        <div class="info">
+            <strong>ℹ️ Interprétation</strong>
+            Un joueur avec peu de tentatives mais un score élevé est très efficace. Un joueur avec beaucoup de tentatives mais peu de points buzz trop souvent sans connaître la réponse.
+        </div>
+
+        <h3>Outils de test</h3>
+        <img src="Clashnow/simulation_partie.png" alt="Boutons SIMUL et QUICK" class="screenshot">
+        <div class="screenshot-caption">Outils de test : SIMUL et QUICK</div>
+        <p>L'interface admin comprend des outils pour tester le système :</p>
+
+        <table>
+            <tr>
+                <th>Outil</th>
+                <th>Fonction</th>
+            </tr>
+            <tr>
+                <td><strong>SIMUL</strong></td>
+                <td>Simule un buzz aléatoire pour tester le système</td>
+            </tr>
+            <tr>
+                <td><strong>QUICK</strong></td>
+                <td>Test rapide de connexion et de réactivité</td>
+            </tr>
+        </table>
+
+        <div class="warning">
+            <strong>⚠️ Usage</strong>
+            Ces boutons sont destinés aux tests avant la partie. Ne les utilisez pas pendant une partie réelle pour éviter toute confusion.
+        </div>
+    </section>
+
+    <!-- Dépannage -->
+    <section id="depannage" class="section">
+        <h2>🔧 Dépannage</h2>
+
+        <h3>Problèmes de connexion</h3>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Les joueurs ne peuvent pas se connecter</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Vérifiez que le serveur admin est bien démarré (bouton SERVER cliqué)</li>
+                    <li>Vérifiez que l'IP entrée par les joueurs est correcte (pas d'espace, pas de :8080)</li>
+                    <li>Assurez-vous que tous les appareils sont sur le MÊME réseau WiFi</li>
+                    <li>Redémarrez le routeur WiFi si nécessaire</li>
+                    <li>Désactivez temporairement les pare-feu qui pourraient bloquer le port 8080</li>
+                    <li>Essayez de pinguer l'IP de l'admin depuis un appareil Android (avec une app de ping)</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Un joueur est déconnecté en cours de partie</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Le point à côté de son nom devient rouge sur l'écran admin</li>
+                    <li>Demandez au joueur de vérifier sa connexion WiFi</li>
+                    <li>Le joueur peut se reconnecter avec les mêmes informations</li>
+                    <li>Son score sera préservé s'il utilise exactement le même nom et la même équipe</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ L'admin ne voit pas l'IP du serveur</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Vérifiez que l'ordinateur est bien connecté au WiFi</li>
+                    <li>Redémarrez l'application CLASHNOW</li>
+                    <li>Trouvez manuellement l'IP avec la commande <code>ipconfig</code> dans l'invite de commandes</li>
+                    <li>Assurez-vous qu'aucun VPN n'est actif</li>
+                </ol>
+            </div>
+        </div>
+
+        <h3>Problèmes de buzz</h3>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Le buzzer ne répond pas quand on appuie</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Vérifiez que la partie est démarrée (bouton START cliqué côté admin)</li>
+                    <li>Vérifiez que le buzzer n'est pas verrouillé (icône de cadenas)</li>
+                    <li>Si votre équipe a déjà buzzé, attendez que l'admin clique sur NEXT</li>
+                    <li>Vérifiez votre connexion internet (le point doit être vert côté admin)</li>
+                    <li>Réessayez d'appuyer fermement sur le bouton</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Le buzz n'arrive pas à l'admin</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Problème de latence réseau : vérifiez la qualité du WiFi</li>
+                    <li>Rapprochez les appareils du routeur WiFi</li>
+                    <li>Fermez les applications qui consomment de la bande passante</li>
+                    <li>Redémarrez la connexion du joueur concerné</li>
+                </ol>
+            </div>
+        </div>
+
+        <h3>Problèmes d'affichage</h3>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Les scores ne se mettent pas à jour</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Vérifiez que vous avez bien cliqué sur un bouton de points dans le dialogue de buzz</li>
+                    <li>Rafraîchissez l'affichage en cliquant sur STATS puis FERMER</li>
+                    <li>Si le problème persiste, notez les scores manuellement et signalez le bug</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ L'application admin se fige</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Fermez et relancez l'application</li>
+                    <li>Les joueurs devront se reconnecter</li>
+                    <li>Les scores en cours seront perdus (utilisez l'export régulièrement)</li>
+                    <li>Vérifiez que votre ordinateur a suffisamment de RAM disponible</li>
+                </ol>
+            </div>
+        </div>
+
+        <h3>Problèmes d'installation</h3>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Windows bloque l'exécution de l'application</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Cliquez sur "Informations complémentaires" dans la fenêtre Windows Defender</li>
+                    <li>Cliquez sur "Exécuter quand même"</li>
+                    <li>L'application est sûre, c'est une mesure de sécurité Windows standard</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">❌ Impossible d'installer l'APK sur Android</div>
+            <div class="faq-answer">
+                <p><strong>Solutions :</strong></p>
+                <ol style="margin-left: 20px;">
+                    <li>Allez dans Paramètres → Sécurité</li>
+                    <li>Activez "Sources inconnues" ou "Installer des applications inconnues"</li>
+                    <li>Sur Android récent, vous devez autoriser l'installation pour l'application spécifique (Gestionnaire de fichiers, Chrome, etc.)</li>
+                    <li>Réessayez d'ouvrir le fichier APK</li>
+                </ol>
+            </div>
+        </div>
+
+        <h3>Conseils pour une partie réussie</h3>
+
+        <div class="tip">
+            <strong>💡 Avant la partie</strong>
+            <ul class="feature-list" style="margin-top: 10px;">
+                <li>Testez la connexion avec 2-3 joueurs avant d'inviter tout le monde</li>
+                <li>Assurez-vous que le WiFi est stable et que tous les appareils sont chargés</li>
+                <li>Expliquez les règles aux participants</li>
+                <li>Faites un tour de test avec une question facile</li>
+            </ul>
+        </div>
+
+        <div class="tip">
+            <strong>💡 Pendant la partie</strong>
+            <ul class="feature-list" style="margin-top: 10px;">
+                <li>Exportez les scores régulièrement (toutes les 10 questions) pour éviter la perte de données</li>
+                <li>Surveillez les indicateurs de connexion (points verts/rouges)</li>
+                <li>Rappelez aux joueurs de ne pas verrouiller leur téléphone</li>
+                <li>Gardez l'écran admin visible pour tous (projecteur ou grand écran)</li>
+            </ul>
+        </div>
+
+        <div class="tip">
+            <strong>💡 Après la partie</strong>
+            <ul class="feature-list" style="margin-top: 10px;">
+                <li>N'oubliez pas d'exporter les résultats finaux</li>
+                <li>Consultez les statistiques pour identifier les MVP</li>
+                <li>Partagez le classement avec les participants</li>
+                <li>Conservez les fichiers CSV pour l'historique</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section">
+        <h2>❓ Questions Fréquentes (FAQ)</h2>
+
+        <div class="faq-item">
+            <div class="faq-question">Combien de joueurs peuvent se connecter simultanément ?</div>
+            <div class="faq-answer">
+                <p>Il n'y a pas de limite technique stricte, mais nous recommandons 4 à 12 joueurs pour une expérience optimale (2 à 6 par équipe). Au-delà, le réseau peut devenir instable selon votre routeur WiFi.</p>
+            </div>
+        </div>
+        Si Windows Defender affiche un avertissement, cliquez sur "Informations complémentaires" puis "Exécuter quand même". L'application est sûre.
+</div>
+</div>
+</div>
+
+<div class="step">
+    <span class="step-number">2</span>
+    <h3>Installation sur Android (Joueurs)</h3>
+    <div class="step-content">
+        <img src="Clashnow/app_icone.png" alt="Icône de l'application CLASHNOW" class="screenshot">
+        <div class="screenshot-caption">Icône de l'application Android (APK)</div>
+        <p><strong>Action :</strong> Installer le fichier <code>clashnow_android.apk</code></p>
+        <ol style="margin-left: 20px; margin-top: 10px;">
+            <li>Transférez le fichier APK sur chaque appareil Android (via câble USB, Bluetooth ou email)</li>
+            <li>Sur l'appareil Android, allez dans <strong>Paramètres → Sécurité</strong></li>
+            <li>Activez <strong>"Sources inconnues"</strong> ou <strong>"Installer des applications inconnues"</strong></li>
+            <li>Ouvrez le fichier APK avec un gestionnaire de fichiers</li>
+            <li>Appuyez sur <strong>Installer</strong></li>
+            <li>Une fois installé, l'icône CLASHNOW apparaîtra dans vos applications</li>
+        </ol>
+
+        <div class="warning">
+            <strong>⚠️ Important</strong>
+            Tous les appareils (admin et joueurs) doivent être connectés au MÊME réseau WiFi pour communiquer.
+        </div>
+    </div>
+</div>
+
+<div class="step">
+    <span class="step-number">3</span>
+    <h3>Configuration réseau</h3>
+    <div class="step-content">
+        <p><strong>Action :</strong> Vérifier la connexion réseau</p>
+
+        <h4>Trouver l'adresse IP de l'ordinateur admin :</h4>
+        <ol style="margin-left: 20px; margin-top: 10px;">
+            <li>Sur Windows, ouvrez l'Invite de commandes (tapez <code>cmd</code> dans la recherche)</li>
+            <li>Tapez <code>ipconfig</code> et appuyez sur Entrée</li>
+            <li>Cherchez "Adresse IPv4" sous votre connexion WiFi</li>
+            <li>Notez cette adresse (exemple : 192.168.1.100)</li>
+        </ol>
+
+        <div class="info">
+            <strong>ℹ️ Alternative facile</strong>
+            L'application CLASHNOW affiche automatiquement l'IP du serveur une fois démarré. Notez simplement cette adresse !
+        </div>
+    </div>
+</div>
+</section>
+
+<!-- Guide Admin -->
+<section id="admin" class="section">
+    <h2>👑 Guide Administrateur (Animateur)</h2>
+
+    <p>L'interface admin vous permet de contrôler entièrement la partie : gérer les joueurs, recevoir les buzz, attribuer les points et consulter les statistiques.</p>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <h3>Démarrer le serveur</h3>
+        <div class="step-content">
+            <img src="Clashnow/admin_server_off.png" alt="Serveur admin arrêté" class="screenshot">
+            <div class="screenshot-caption">Serveur admin : état arrêté / non démarré</div>
+            <p><strong>Action :</strong> Lancer l'application et cliquer sur le bouton <strong>"SERVER"</strong></p>
+
+            <p><strong>Résultat attendu :</strong></p>
+            <ul class="feature-list">
+                <li>Le bouton SERVER devient gris (désactivé)</li>
+                <li>Le statut passe à "En attente de joueurs..."</li>
+                <li>L'adresse IP du serveur s'affiche (ex: 172.20.10.5:8080)</li>
+            </ul>
+
+            <div class="tip">
+                <strong>💡 Conseil</strong>
+                Notez immédiatement l'adresse IP affichée. Communiquez-la aux joueurs pour qu'ils puissent se connecter.
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <h3>Accueillir les joueurs</h3>
+        <div class="step-content">
+            <img src="Clashnow/player_form_ready.png" alt="Liste joueurs connectés" class="screenshot">
+            <div class="screenshot-caption">Liste des joueurs connectés côté admin</div>
+            <p><strong>Observation :</strong> Les joueurs apparaissent automatiquement dans la liste</p>
+
+            <p>Pour chaque joueur connecté, vous verrez :</p>
+            <ul class="feature-list">
+                <li><strong>Nom du joueur</strong> : Le nom qu'il a choisi</li>
+                <li><strong>Équipe</strong> : EQUIPE A ou EQUIPE B</li>
+                <li><strong>Indicateur de connexion</strong> : Point vert = connecté, rouge = déconnecté</li>
+                <li><strong>Statistiques</strong> : Tentatives, réussites, efficacité</li>
+                <li><strong>Score personnel</strong> : Points accumulés</li>
+            </ul>
+
+            <div class="info">
+                <strong>ℹ️ Gestion des capitaines</strong>
+                Cliquez sur un joueur pour accéder aux options, puis choisissez "Désigner comme capitaine" pour lui attribuer une couronne 👑.
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <h3>Démarrer la partie</h3>
+        <div class="step-content">
+            <p><strong>Action :</strong> Une fois tous les joueurs connectés, cliquer sur <strong>"START"</strong></p>
+
+            <p><strong>Résultat :</strong></p>
+            <ul class="feature-list">
+                <li>Le statut change (ex: "QUESTION 1")</li>
+                <li>Les buzzers des joueurs deviennent actifs (rouge)</li>
+                <li>Le bouton START devient gris</li>
+                <li>Les boutons PAUSE et NEXT deviennent actifs</li>
+            </ul>
+
+            <div class="tip">
+                <strong>💡 Conseil</strong>
+                Attendez que tous les joueurs confirment qu'ils voient leur buzzer actif avant de poser la première question.
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">4</span>
+        <h3>Gérer les buzz</h3>
+        <div class="step-content">
+            <img src="Clashnow/buzz_score.png" alt="Dialogue de buzz et attribution de points" class="screenshot">
+            <div class="screenshot-caption">Dialogue de buzz : attribuez des points ou appliquez une pénalité</div>
+            <p><strong>Situation :</strong> Un joueur appuie sur son buzzer</p>
+
+            <p>Un dialogue modal apparaît immédiatement avec :</p>
+            <ul class="feature-list">
+                <li><strong>Nom du joueur</strong> qui a buzzé</li>
+                <li><strong>Son équipe</strong> (EQUIPE A ou B)</li>
+                <li><strong>Boutons de points</strong> : +10, +20, +30, +40 points</li>
+                <li><strong>Bouton +5</strong> : Pour bonus ou points partiels</li>
+                <li><strong>Bouton -10</strong> : Pour pénalité (mauvaise réponse)</li>
+                <li><strong>Bouton PASSER</strong> : Verrouille cette équipe et déverrouille l'autre</li>
+            </ul>
+
+            <h4>Actions possibles :</h4>
+            <p><strong>Bonne réponse :</strong></p>
+            <ol style="margin-left: 20px;">
+                <li>Cliquez sur le bouton de points approprié (+10, +20, etc.)</li>
+                <li>Le dialogue se ferme automatiquement</li>
+                <li>Le score du joueur et de son équipe est mis à jour</li>
+                <li>Tous les buzzers se verrouillent</li>
+            </ol>
+
+            <p><strong>Mauvaise réponse :</strong></p>
+            <ol style="margin-left: 20px;">
+                <li>Cliquez sur <strong>-10 POINTS</strong> pour appliquer la pénalité</li>
+                <li>OU cliquez sur <strong>PASSER</strong> pour donner la chance à l'autre équipe</li>
+                <li>L'équipe du joueur est verrouillée</li>
+                <li>L'autre équipe peut buzzer</li>
+            </ol>
+
+            <div class="warning">
+                <strong>⚠️ Important</strong>
+                Une fois qu'un joueur buzz, son équipe entière est verrouillée. Seuls les membres de l'autre équipe peuvent buzzer à nouveau si vous cliquez sur PASSER.
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">5</span>
+        <h3>Passer à la question suivante</h3>
+        <div class="step-content">
+            <p><strong>Action :</strong> Cliquer sur le bouton <strong>"NEXT"</strong></p>
+
+            <p><strong>Effet :</strong></p>
+            <ul class="feature-list">
+                <li>Tous les buzzers sont déverrouillés et réinitialisés</li>
+                <li>Le numéro de question s'incrémente</li>
+                <li>Les deux équipes peuvent buzzer à nouveau</li>
+            </ul>
+
+            <div class="tip">
+                <strong>💡 Conseil</strong>
+                Utilisez le bouton PAUSE si vous devez faire une interruption sans passer à la question suivante.
+            </div>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">6</span>
+        <h3>Consulter les statistiques</h3>
+        <div class="step-content">
+            <img src="Clashnow/stats_details.png" alt="Statistiques détaillées" class="screenshot">
+            <div class="screenshot-caption">Panneau de statistiques détaillées</div>
+            <p><strong>Action :</strong> Cliquer sur le bouton <strong>"STATS"</strong> (icône 📊)</p>
+
+            <p>Le panneau de statistiques affiche :</p>
+
+            <h4>🏆 Top Scorer</h4>
+            <ul class="feature-list">
+                <li>Nom du meilleur joueur</li>
+                <li>Son score total</li>
+                <li>Nombre de tentatives et réussites</li>
+                <li>Taux d'efficacité</li>
+            </ul>
+
+            <h4>📊 Métriques globales</h4>
+            <ul class="feature-list">
+                <li>Points totaux distribués</li>
+                <li>Nombre total de tentatives</li>
+                <li>Nombre de réussites</li>
+                <li>Efficacité générale</li>
+            </ul>
+
+            <h4>🎯 Classement détaillé</h4>
+            <p>Liste de tous les joueurs classés par score avec leurs statistiques individuelles.</p>
+
+            <div class="tip">
+                <strong>💡 Astuce</strong>
+                Exportez régulièrement les statistiques en cliquant sur <strong>"EXPORTER"</strong> pour sauvegarder les résultats au format CSV.

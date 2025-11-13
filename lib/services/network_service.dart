@@ -158,9 +158,16 @@ class NetworkService with ChangeNotifier {
   //Pour Supprimer un client
   // Ajouter cette méthode pour gérer la suppression des clients
   void _removeClient(Socket client) {
-    _clients.remove(client);
-    _status = '${_clients.length} joueur(s) connecté(s)';
-    notifyListeners();
+    try {
+      if (_clients.contains(client)) {
+        _clients.remove(client);
+        client.close();
+        _status = '${_clients.length} joueur(s) connecté(s)';
+        notifyListeners();
+      }
+    } catch (e) {
+      print('❌ Erreur suppression client: $e');
+    }
   }
 
   // Dans la classe NetworkService, ajoutez cette méthode :

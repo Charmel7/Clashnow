@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
 import '../services/network_service.dart';
@@ -17,7 +18,8 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   List<Map<String, dynamic>> players = [];
-
+  final AudioPlayer _buzzSoundPlayer = AudioPlayer();
+  bool _isBuzzSoundLoaded = false;
   String? _buzzedPlayer;
   String? _buzzedPlayerId;
   bool _serverStarted = false;
@@ -27,13 +29,12 @@ class _AdminScreenState extends State<AdminScreen> {
   String? _firstBuzzerPlayerId;
   bool _waitingForAnswer = false;
   List<String> _buzzedPlayers = [];
-  // Ajoutez cette variable d'état
-  bool _showSimulationButtons = true;
 
   @override
   void initState() {
     super.initState();
     _initSimulationService();
+    _initBuzzSound();
     // On ne peut pas utiliser Provider dans initState directement
     // On va utiliser un delay
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,7 +45,30 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   void dispose() {
     _simulationService.dispose();
+    _buzzSoundPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _initBuzzSound() async {
+    try {
+      await _buzzSoundPlayer.setAsset('assets/sounds/1.mp3');
+      setState(() {
+        _isBuzzSoundLoaded = true;
+      });
+    } catch (e) {
+      print('❌ Erreur chargement son buzz: $e');
+    }
+  }
+
+  void _playBuzzSound() async {
+    if (!_isBuzzSoundLoaded) return;
+
+    try {
+      await _buzzSoundPlayer.seek(Duration.zero);
+      await _buzzSoundPlayer.play();
+    } catch (e) {
+      print('❌ Erreur lecture son buzz: $e');
+    }
   }
 
   // 🔥 SERVICE DE SIMULATION
@@ -213,170 +237,6 @@ class _AdminScreenState extends State<AdminScreen> {
         false;
   }
 
-  void _exportStatsToCSV() async {
-    try {
-      final now = DateTime.now();
-      final dateStr =
-          '${now.day}/${now.month}/${now.year} ${now.hour}h${now.minute}';
-
-      final StringBuffer csv = StringBuffer();
-
-      // En-tête avec date
-      csv.writeln('STATISTIQUES CLASHNOW - $dateStr');
-      csv.writeln('Question actuelle: $currentQuestion');
-      csv.writeln(
-        'Joueurs connectés: ${players.where((p) => p['connected'] == true).length}',
-      );
-      csv.writeln('');
-
-      // CORRECTION : Vérifier si la liste des joueurs n'est pas vide
-      if (players.isEmpty) {
-        csv.writeln('Aucun joueur connecté');
-        final text = csv.toString();
-        await Clipboard.setData(ClipboardData(text: text));
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('📊 Statistiques copiées ($dateStr)'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        return;
-      }
-
-      // Calcul du topscorer avec valeurs sécurisées
-      final topScorer = players.isNotEmpty
-          ? players.reduce((a, b) {
-              final scoreA = a['score'] ?? 0;
-              final scoreB = b['score'] ?? 0;
-              return scoreA > scoreB ? a : b;
-            })
-          : null;
-
-      // Topscores
-      csv.writeln('🏆 TOP SCORER');
-      if (topScorer != null) {
-        csv.writeln(
-          'Meilleur joueur: ${topScorer['name']} (${topScorer['team']})',
-        );
-        csv.writeln('Score: ${topScorer['score'] ?? 0} points');
-
-        // Efficacité du topscorer avec valeurs sécurisées
-        final attempts = topScorer['attempts'] ?? 0;
-        final success = topScorer['success'] ?? 0;
-        final efficiency = attempts > 0
-            ? ((success / attempts) * 100).toStringAsFixed(1)
-            : '0.0';
-        csv.writeln('Efficacité: $success/$attempts (${efficiency}%)');
-      }
-      csv.writeln('');
-
-      // Classement individuel détaillé avec valeurs sécurisées
-      csv.writeln('📊 CLASSEMENT INDIVIDUEL DÉTAILLÉ');
-      csv.writeln(
-        'Rang,Nom,Équipe,Score,Pénalités,Tentatives,Réussites,Efficacité',
-      );
-
-      final sortedPlayers = List.from(players)
-        ..sort((a, b) {
-          final scoreA = a['score'] ?? 0;
-          final scoreB = b['score'] ?? 0;
-          return scoreB.compareTo(scoreA);
-        });
-
-      for (int i = 0; i < sortedPlayers.length; i++) {
-        final player = sortedPlayers[i];
-        final attempts = player['attempts'] ?? 0;
-        final success = player['success'] ?? 0;
-        final efficiency = attempts > 0
-            ? ((success / attempts) * 100).toStringAsFixed(1)
-            : '0.0';
-
-        csv.writeln(
-          '${i + 1},${player['name']},${player['team']},${player['score'] ?? 0},${player['penalties'] ?? 0},$attempts,$success,${efficiency}%',
-        );
-      }
-
-      // Scores par équipe avec valeurs sécurisées
-      csv.writeln('\n👥 SCORES PAR ÉQUIPE');
-      csv.writeln('Équipe,Score total,Joueurs,Tentatives,Réussites,Efficacité');
-
-      final teams = _groupPlayersByTeam();
-      for (var team in teams.entries) {
-        final teamPlayers = team.value;
-        final teamScore = _getTeamScore(team.key);
-        final teamAttempts = teamPlayers.fold(
-          0,
-          (sum, player) => sum + (player['attempts'] as int? ?? 0),
-        );
-        final teamSuccess = teamPlayers.fold(
-          0,
-          (sum, player) => sum + (player['success'] as int? ?? 0),
-        );
-        final teamEfficiency = teamAttempts > 0
-            ? ((teamSuccess / teamAttempts) * 100).toStringAsFixed(1)
-            : '0.0';
-
-        csv.writeln(
-          '${team.key},$teamScore,${teamPlayers.length},$teamAttempts,$teamSuccess,${teamEfficiency}%',
-        );
-      }
-
-      // Métriques globales avec valeurs sécurisées
-      csv.writeln('\n📈 MÉTRIQUES GLOBALES');
-      final totalPoints = players.fold(
-        0,
-        (sum, player) => sum + (player['score'] as int? ?? 0),
-      );
-      final totalAttempts = players.fold(
-        0,
-        (sum, player) => sum + (player['attempts'] as int? ?? 0),
-      );
-      final totalSuccess = players.fold(
-        0,
-        (sum, player) => sum + (player['success'] as int? ?? 0),
-      );
-      final totalPenalties = players.fold(
-        0,
-        (sum, player) => sum + (player['penalties'] as int? ?? 0),
-      );
-      final globalEfficiency = totalAttempts > 0
-          ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1)
-          : '0.0';
-
-      csv.writeln('Points totaux: $totalPoints');
-      csv.writeln('Tentatives totales: $totalAttempts');
-      csv.writeln('Réussites totales: $totalSuccess');
-      csv.writeln('Efficacité globale: ${globalEfficiency}%');
-      csv.writeln('Pénalités totales: $totalPenalties');
-      csv.writeln(
-        'Taux de réussite: ${totalAttempts > 0 ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1) : '0.0'}%',
-      );
-
-      // Partage
-      final text = csv.toString();
-      await Clipboard.setData(ClipboardData(text: text));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('📊 Statistiques copiées ($dateStr)'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'VOIR',
-            onPressed: () => _showEnhancedStatsPreview(text),
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Erreur export: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   int _getTeamScore(String teamName) {
     return players.where((player) => player['team'] == teamName).fold(0, (
       sum,
@@ -432,6 +292,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         });
       });
     }
@@ -440,6 +301,50 @@ class _AdminScreenState extends State<AdminScreen> {
       SnackBar(
         content: Text('✅ $playerName a rejoint le salon'),
         backgroundColor: Colors.green,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  //  MÉTHODE POUR DESIGNER CAPITAINE
+  void _toggleCaptain(String playerId) {
+    if (!mounted) return;
+
+    setState(() {
+      // Retirer le statut de capitaine à tous les joueurs de la même équipe
+      final player = players.firstWhere((p) => p['id'] == playerId);
+      final team = player['team'];
+
+      for (var p in players) {
+        if (p['team'] == team) {
+          p['isCaptain'] = false;
+        }
+      }
+
+      // Designe le nouveau capitaine
+      final playerIndex = players.indexWhere((p) => p['id'] == playerId);
+      if (playerIndex != -1) {
+        players[playerIndex]['isCaptain'] = true;
+
+        // Envoyer la mise à jour à tous les joueurs
+        final networkService = Provider.of<NetworkService>(
+          context,
+          listen: false,
+        );
+        networkService.sendMessage({
+          'type': 'captain_update',
+          'playerId': playerId,
+          'playerName': players[playerIndex]['name'],
+          'teamName': team,
+          'isCaptain': true,
+        });
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('👑 Capitaine désigné '),
+        backgroundColor: Colors.amber,
         duration: Duration(seconds: 1),
       ),
     );
@@ -680,9 +585,8 @@ class _AdminScreenState extends State<AdminScreen> {
     final playerName = message['playerName'];
     final teamName = message['teamName'];
     final timestamp = message['timestamp'];
-
     print('🎯 Buzz reçu de: $playerName ($teamName) à $timestamp');
-
+    _playBuzzSound();
     // Vérifier si le widget est monté
     if (!mounted) {
       print('⚠️ Widget admin désactivé - Ignorer buzz');
@@ -767,6 +671,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'success': 0,
           'penalties': 0,
           'connected': true,
+          'isCaptain': false,
         });
       });
     }
@@ -943,6 +848,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
         {
           'id': 'johne_equipe_a',
@@ -953,6 +859,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
         {
           'id': 'marie_equipe_b',
@@ -963,6 +870,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
         {
           'id': 'marier_equipe_b',
@@ -973,6 +881,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
         {
           'id': 'paul_equipe_b',
@@ -983,6 +892,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
         {
           'id': 'pierre_equipe_b',
@@ -993,6 +903,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'attempts': 0,
           'success': 0,
           'connected': true,
+          'isCaptain': false,
         },
       ];
     });
@@ -1096,7 +1007,6 @@ class _AdminScreenState extends State<AdminScreen> {
     networkService.sendMessage({
       'type': 'next_question',
       'questionNumber': currentQuestion,
-      // 🔥 Ajouter un indicateur pour déverrouiller toutes les équipes
       'unlockAll': true,
     });
 
@@ -1185,7 +1095,7 @@ class _AdminScreenState extends State<AdminScreen> {
               points: -5,
               onPressed: () {
                 Navigator.pop(context);
-                _addPenalty(playerId, -5);
+                _addPenalty(playerId, 5);
               },
             ),
             const SizedBox(height: 5),
@@ -1193,7 +1103,7 @@ class _AdminScreenState extends State<AdminScreen> {
               points: -10,
               onPressed: () {
                 Navigator.pop(context);
-                _addPenalty(playerId, -10);
+                _addPenalty(playerId, 10);
               },
             ),
           ],
@@ -1316,6 +1226,54 @@ class _AdminScreenState extends State<AdminScreen> {
             child: const Text('FERMER'),
           ),
         ],
+      ),
+    );
+  }
+
+  // MÉTHODE POUR OPTIONS JOUEUR
+  void _showPlayerOptions(String playerId) {
+    final playerIndex = players.indexWhere((p) => p['id'] == playerId);
+    if (playerIndex == -1) return;
+
+    final player = players[playerIndex];
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Options pour ${player['name']}',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            SizedBox(height: 16),
+
+            // BOUTON CAPITAINE
+            ListTile(
+              leading: Icon(Icons.stars, color: Colors.amber),
+              title: Text('Désigner comme capitaine'),
+              trailing: player['isCaptain'] == true
+                  ? Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                _toggleCaptain(playerId);
+              },
+            ),
+
+            // BOUTON PÉNALITÉS
+            ListTile(
+              leading: Icon(Icons.warning, color: Colors.redAccent),
+              title: Text('Ajouter une pénalité'),
+              onTap: () {
+                Navigator.pop(context);
+                _showPointsDialog(playerId);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1476,26 +1434,56 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Column(
                   children: [
                     // SCORES DES ÉQUIPES
+                    // SCORES ÉQUIPE PLUS VISIBLES
                     Card(
+                      elevation: 4,
+                      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.all(20.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: _groupPlayersByTeam().entries.map((team) {
-                            return Column(
-                              children: [
-                                Text(
-                                  team.key,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  '${_getTeamScore(team.key)} pts',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.blue,
+                            final teamName = team.key;
+                            final teamScore = _getTeamScore(teamName);
+                            final teamColor = teamName == 'EQUIPE A'
+                                ? Colors.blue[900]!
+                                : Colors.red[700]!;
+
+                            return Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 100,
+                                vertical: 15,
+                              ),
+                              decoration: BoxDecoration(
+                                color: teamColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: teamColor, width: 3),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    teamName,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: teamColor,
+                                      letterSpacing: 1.0,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(height: 8),
+                                  Text(
+                                    '$teamScore pts',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w800, // Très gras
+                                      color: teamColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
                           }).toList(),
                         ),
@@ -1537,11 +1525,36 @@ class _AdminScreenState extends State<AdminScreen> {
                                         color: Colors.red,
                                       ),
                                     ),
+                                  if (player['isCaptain'] ==
+                                      true) // 🔥 NOUVEAU - Indicateur capitaine
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: Icon(
+                                        Icons.stars,
+                                        size: 12,
+                                        color: Colors.amber,
+                                      ),
+                                    ),
                                 ],
                               ),
                               title: Row(
                                 children: [
                                   Text(player['name']),
+
+                                  if (player['isCaptain'] ==
+                                      true) // 🔥 NOUVEAU - Texte capitaine
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        '(Capitaine)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.amber[700],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
                                   if (!player['connected'])
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8.0),
@@ -1580,8 +1593,128 @@ class _AdminScreenState extends State<AdminScreen> {
                                 ),
                               ),
                               onTap: player['connected']
-                                  ? () => _showPointsDialog(player['id'])
+                                  ? () => _showPlayerOptions(player['id'])
                                   : null,
+                            ),
+                          ); // JOUEURS AVEC MEILLEURE LISIBILITÉ
+
+                          Card(
+                            elevation: 3,
+                            margin: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: player['connected']
+                                      ? Colors.green[50]
+                                      : Colors.grey[200],
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: player['connected']
+                                        ? Colors.green
+                                        : Colors.grey,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.person,
+                                      color: player['connected']
+                                          ? Colors.green[700]
+                                          : Colors.grey,
+                                      size: 24,
+                                    ),
+                                    if (player['isCaptain'] == true)
+                                      Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.emoji_events,
+                                            size: 12,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              title: Text(
+                                player['name'],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: player['connected']
+                                      ? Colors.grey[900]
+                                      : Colors.grey[500],
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    player['team'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: player['team'] == 'EQUIPE A'
+                                          ? Colors.blue[900]
+                                          : Colors.red[700],
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Tentatives: ${player['attempts'] ?? 0} | Réussites: ${player['success'] ?? 0}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: player['connected']
+                                      ? Colors.blue[50]
+                                      : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: player['connected']
+                                        ? Colors.blue[700]!
+                                        : Colors.grey,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${player['score']} pts',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    color: player['connected']
+                                        ? Colors.blue[900]!
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                              ),
                             ),
                           );
                         },
@@ -1650,7 +1783,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ],
               ),
               // 🔥 SECTION SIMULATION - FACILE À SUPPRIMER (début)
-              /*  Card(
+              /* Card(
                 margin: EdgeInsets.all(8),
                 color: Colors.purple[50],
                 child: Padding(
@@ -1757,6 +1890,193 @@ class _AdminScreenState extends State<AdminScreen> {
         ),
       ),
     );
+  }
+
+  void _exportStatsToCSV() async {
+    try {
+      final now = DateTime.now();
+      final dateStr =
+          '${now.day}/${now.month}/${now.year} ${now.hour}h${now.minute}';
+
+      final StringBuffer csv = StringBuffer();
+
+      // En-tête
+      csv.writeln('STATISTIQUES CLASHNOW - $dateStr');
+      csv.writeln('Question actuelle: $currentQuestion');
+      csv.writeln(
+        'Joueurs connectés: ${players.where((p) => p['connected'] == true).length}',
+      );
+      csv.writeln('');
+
+      // Vérification joueurs
+      if (players.isEmpty) {
+        csv.writeln('Aucun joueur connecté');
+        final text = csv.toString();
+        await Clipboard.setData(ClipboardData(text: text));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📊 Statistiques copiées ($dateStr)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      // 🔥 CORRECTION : Top scorer sécurisé
+      final topScorer = players.isNotEmpty
+          ? players.reduce((a, b) {
+              final scoreA = _safeGetInt(a, 'score');
+              final scoreB = _safeGetInt(b, 'score');
+              return scoreA > scoreB ? a : b;
+            })
+          : null;
+
+      // Topscores
+      csv.writeln('🏆 TOP SCORER');
+      if (topScorer != null) {
+        csv.writeln(
+          'Meilleur joueur: ${topScorer['name']} (${topScorer['team']})',
+        );
+        csv.writeln('Score: ${_safeGetInt(topScorer, 'score')} points');
+
+        final attempts = _safeGetInt(topScorer, 'attempts');
+        final success = _safeGetInt(topScorer, 'success');
+        final efficiency = attempts > 0
+            ? ((success / attempts) * 100).toStringAsFixed(1)
+            : '0.0';
+        csv.writeln('Efficacité: $success/$attempts (${efficiency}%)');
+      }
+      csv.writeln('');
+
+      // Classement individuel sécurisé
+      csv.writeln('📊 CLASSEMENT INDIVIDUEL DÉTAILLÉ');
+      csv.writeln(
+        'Rang,Nom,Équipe,Score,Pénalités,Tentatives,Réussites,Efficacité',
+      );
+
+      final sortedPlayers = List.from(players)
+        ..sort((a, b) {
+          final scoreA = _safeGetInt(a, 'score');
+          final scoreB = _safeGetInt(b, 'score');
+          return scoreB.compareTo(scoreA);
+        });
+
+      for (int i = 0; i < sortedPlayers.length; i++) {
+        final player = sortedPlayers[i];
+        final attempts = _safeGetInt(player, 'attempts');
+        final success = _safeGetInt(player, 'success');
+        final efficiency = attempts > 0
+            ? ((success / attempts) * 100).toStringAsFixed(1)
+            : '0.0';
+
+        csv.writeln(
+          '${i + 1},'
+          '${player['name']},'
+          '${player['team']},'
+          '${_safeGetInt(player, 'score')},'
+          '${_safeGetInt(player, 'penalties')},'
+          '$attempts,'
+          '$success,'
+          '${efficiency}%',
+        );
+      }
+
+      // Scores par équipe sécurisés
+      csv.writeln('\n👥 SCORES PAR ÉQUIPE');
+      csv.writeln('Équipe,Score total,Joueurs,Tentatives,Réussites,Efficacité');
+
+      final teams = _groupPlayersByTeam();
+      for (var team in teams.entries) {
+        final teamPlayers = team.value;
+        final teamScore = _getTeamScoreSafe(team.key);
+        final teamAttempts = teamPlayers.fold(
+          0,
+          (sum, player) => sum + _safeGetInt(player, 'attempts'),
+        );
+        final teamSuccess = teamPlayers.fold(
+          0,
+          (sum, player) => sum + _safeGetInt(player, 'success'),
+        );
+        final teamEfficiency = teamAttempts > 0
+            ? ((teamSuccess / teamAttempts) * 100).toStringAsFixed(1)
+            : '0.0';
+
+        csv.writeln(
+          '${team.key},$teamScore,${teamPlayers.length},$teamAttempts,$teamSuccess,${teamEfficiency}%',
+        );
+      }
+
+      // Métriques globales sécurisées
+      csv.writeln('\n📈 MÉTRIQUES GLOBALES');
+      final totalPoints = players.fold(
+        0,
+        (sum, player) => sum + _safeGetInt(player, 'score'),
+      );
+      final totalAttempts = players.fold(
+        0,
+        (sum, player) => sum + _safeGetInt(player, 'attempts'),
+      );
+      final totalSuccess = players.fold(
+        0,
+        (sum, player) => sum + _safeGetInt(player, 'success'),
+      );
+      final totalPenalties = players.fold(
+        0,
+        (sum, player) => sum + _safeGetInt(player, 'penalties'),
+      );
+      final globalEfficiency = totalAttempts > 0
+          ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1)
+          : '0.0';
+
+      csv.writeln('Points totaux: $totalPoints');
+      csv.writeln('Tentatives totales: $totalAttempts');
+      csv.writeln('Réussites totales: $totalSuccess');
+      csv.writeln('Efficacité globale: ${globalEfficiency}%');
+      csv.writeln('Pénalités totales: $totalPenalties');
+      csv.writeln('Taux de réussite: ${globalEfficiency}%');
+
+      // Copie dans le presse-papiers
+      final text = csv.toString();
+      await Clipboard.setData(ClipboardData(text: text));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('📊 Statistiques copiées ($dateStr)'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'VOIR',
+            onPressed: () => _showEnhancedStatsPreview(text),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur export: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 🔥 NOUVELLE MÉTHODE POUR ACCÈS SÉCURISÉ AUX DONNÉES
+  int _safeGetInt(Map<String, dynamic> player, String key) {
+    final value = player[key];
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
+
+  // 🔥 VERSION CORRIGÉE DE _getTeamScore
+  int _getTeamScoreSafe(String teamName) {
+    return players.where((player) => player['team'] == teamName).fold(0, (
+      sum,
+      player,
+    ) {
+      return sum + _safeGetInt(player, 'score');
+    });
   }
 }
 
