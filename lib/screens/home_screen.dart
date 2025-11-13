@@ -1,4 +1,12 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+
+bool get isWindows {
+  if (kIsWeb) return false; // Web n'est pas Windows
+  return Platform.isWindows;
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,9 +25,11 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/admin');
-              },
+              onPressed: isWindows
+                  ? () {
+                      Navigator.pushNamed(context, '/admin');
+                    }
+                  : null,
               child: const Text('CRÉER SALON'),
             ),
             const SizedBox(height: 20),

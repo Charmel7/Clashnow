@@ -147,20 +147,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         );
       } else if (message['type'] == 'next_question') {
+        // 🔥 MODIFICATION : Vérifier si on doit déverrouiller toutes les équipes
+        final bool unlockAll = message['unlockAll'] ?? false;
         if (mounted) {
           setState(() {
-            _isBuzzerLocked = false;
+            _isBuzzerLocked =
+                !unlockAll; // Si unlockAll est true, déverrouiller
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '➡️ Question ${message['questionNumber']} - Buzzers activés !',
+              unlockAll
+                  ? '➡️ Question ${message['questionNumber']} - Toutes les équipes peuvent buzzer !'
+                  : '➡️ Question ${message['questionNumber']} - Buzzers activés !',
             ),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 1),
           ),
         );
+      } else if (message['type'] == 'lock_team_buzzers') {
+        // 🔥 NOUVEAU : Verrouillage par équipe
+        if (mounted) {
+          final lockedTeam = message['lockedTeam'];
+          final unlockedTeam = message['unlockedTeam'];
+
+          // Vérifier si ce joueur est dans l'équipe verrouillée ou déverrouillée
+          if (widget.teamName == lockedTeam) {
+            setState(() {
+              _isBuzzerLocked = true;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '🔒 Votre équipe est verrouillée - Attendez la prochaine question',
+                ),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          } else if (widget.teamName == unlockedTeam) {
+            setState(() {
+              _isBuzzerLocked = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ Votre équipe peut maintenant buzzer !'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
       } else if (message['type'] == 'game_pause') {
         if (mounted) {
           setState(() {
@@ -173,8 +211,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    // 🔥 ENVOYER UN MESSAGE DE DÉCONNEXION
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendPlayerLeave(widget.playerName, widget.teamName);
+
     _audioPlayer.dispose();
-    _focusNode.dispose(); // Dispose the focus node
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -190,7 +232,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: const Text('ANNULER'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () {
+                  // 🔥 ENVOYER DÉCONNEXION AVANT DE QUITTER
+                  final networkService = Provider.of<NetworkService>(
+                    context,
+                    listen: false,
+                  );
+                  networkService.sendPlayerLeave(
+                    widget.playerName,
+                    widget.teamName,
+                  );
+                  Navigator.of(context).pop(true);
+                },
                 child: const Text('QUITTER'),
               ),
             ],

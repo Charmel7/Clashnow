@@ -163,6 +163,17 @@ class NetworkService with ChangeNotifier {
     notifyListeners();
   }
 
+  // Dans la classe NetworkService, ajoutez cette méthode :
+  void sendPlayerLeave(String playerName, String teamName) {
+    final playerId = '${playerName}_$teamName';
+    sendMessage({
+      'type': 'player_leave',
+      'playerId': playerId,
+      'playerName': playerName,
+      'teamName': teamName,
+    });
+  }
+
   void disconnect() {
     for (final client in _clients) {
       client.close();

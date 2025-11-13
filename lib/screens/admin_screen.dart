@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/network_service.dart';
+import '../services/simulation_service.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -25,13 +27,113 @@ class _AdminScreenState extends State<AdminScreen> {
   String? _firstBuzzerPlayerId;
   bool _waitingForAnswer = false;
   List<String> _buzzedPlayers = [];
+  // Ajoutez cette variable d'état
+  bool _showSimulationButtons = true;
+
   @override
   void initState() {
     super.initState();
+    _initSimulationService();
     // On ne peut pas utiliser Provider dans initState directement
     // On va utiliser un delay
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupNetworkListener();
+    });
+  }
+
+  @override
+  void dispose() {
+    _simulationService.dispose();
+    super.dispose();
+  }
+
+  // 🔥 SERVICE DE SIMULATION
+  late SimulationService _simulationService;
+
+  void _initSimulationService() {
+    _simulationService = SimulationService();
+    _simulationService.initialize(
+      onBuzz: _handleBuzzMessage,
+      onNextQuestion: nextQuestion,
+      onScoreUpdate: _handleSimulatedScoreUpdate,
+      onPenalty: _handleSimulatedPenalty,
+      onPlayerDisconnect: _handleSimulatedPlayerDisconnect,
+      onPlayersUpdate: _handleSimulatedPlayersUpdate,
+    );
+
+    // Écouter les changements d'état de la simulation
+    _simulationService.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  // 🔥 GESTION DES SCORES SIMULÉS
+  void _handleSimulatedScoreUpdate(Map<String, dynamic> data) {
+    final playerIndex = players.indexWhere((p) => p['id'] == data['playerId']);
+    if (playerIndex != -1) {
+      setState(() {
+        players[playerIndex]['score'] = data['totalScore'];
+        players[playerIndex]['success'] =
+            (players[playerIndex]['success'] ?? 0) + 1;
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '⭐ Simulation: ${data['playerName']} +${data['points']} points',
+        ),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  // 🔥 GESTION DES PÉNALITÉS SIMULÉES
+  void _handleSimulatedPenalty(Map<String, dynamic> data) {
+    final playerIndex = players.indexWhere((p) => p['id'] == data['playerId']);
+    if (playerIndex != -1) {
+      setState(() {
+        players[playerIndex]['score'] = data['totalScore'];
+        players[playerIndex]['penalties'] =
+            (players[playerIndex]['penalties'] ?? 0) + 1;
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('⛔ Simulation: Pénalité ${data['playerName']} -5 points'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  // 🔥 GESTION DES DÉCONNEXIONS SIMULÉES
+  void _handleSimulatedPlayerDisconnect(Map<String, dynamic> data) {
+    final playerIndex = players.indexWhere((p) => p['id'] == data['playerId']);
+    if (playerIndex != -1) {
+      setState(() {
+        players[playerIndex]['connected'] = false;
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('📤 Simulation: ${data['playerName']} déconnecté'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  // 🔥 GESTION DES JOUEURS SIMULÉS
+  void _handleSimulatedPlayersUpdate(List<Map<String, dynamic>> newPlayers) {
+    setState(() {
+      // Supprimer les anciens joueurs simulés
+      players.removeWhere((player) => player['isSimulated'] == true);
+      // Ajouter les nouveaux joueurs simulés
+      players.addAll(newPlayers);
     });
   }
 
@@ -43,8 +145,35 @@ class _AdminScreenState extends State<AdminScreen> {
         _handleBuzzMessage(message);
       } else if (message['type'] == 'player_join') {
         _handlePlayerJoin(message);
+      } else if (message['type'] == 'player_leave') {
+        _handlePlayerLeave(message);
       }
     });
+  }
+
+  void _handlePlayerLeave(Map<String, dynamic> message) {
+    final playerId = message['playerId'];
+    final playerName = message['playerName'];
+    final teamName = message['teamName'];
+
+    print('📤 Joueur déconnecté: $playerName ($teamName) - ID: $playerId');
+
+    if (!mounted) {
+      print('⚠️ Widget admin déjà désactivé - Ignorer déconnexion');
+      return;
+    }
+
+    setState(() {
+      players.removeWhere((player) => player['id'] == playerId);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('📤 $playerName a quitté le salon'),
+        backgroundColor: Colors.blueGrey,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Map<String, List<Map<String, dynamic>>> _groupPlayersByTeam() {
@@ -100,11 +229,28 @@ class _AdminScreenState extends State<AdminScreen> {
       );
       csv.writeln('');
 
-      // Calcul du topscorer
+      // CORRECTION : Vérifier si la liste des joueurs n'est pas vide
+      if (players.isEmpty) {
+        csv.writeln('Aucun joueur connecté');
+        final text = csv.toString();
+        await Clipboard.setData(ClipboardData(text: text));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📊 Statistiques copiées ($dateStr)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      // Calcul du topscorer avec valeurs sécurisées
       final topScorer = players.isNotEmpty
-          ? players.reduce(
-              (a, b) => (a['score'] ?? 0) > (b['score'] ?? 0) ? a : b,
-            )
+          ? players.reduce((a, b) {
+              final scoreA = a['score'] ?? 0;
+              final scoreB = b['score'] ?? 0;
+              return scoreA > scoreB ? a : b;
+            })
           : null;
 
       // Topscores
@@ -113,9 +259,9 @@ class _AdminScreenState extends State<AdminScreen> {
         csv.writeln(
           'Meilleur joueur: ${topScorer['name']} (${topScorer['team']})',
         );
-        csv.writeln('Score: ${topScorer['score']} points');
+        csv.writeln('Score: ${topScorer['score'] ?? 0} points');
 
-        // Efficacité du topscorer
+        // Efficacité du topscorer avec valeurs sécurisées
         final attempts = topScorer['attempts'] ?? 0;
         final success = topScorer['success'] ?? 0;
         final efficiency = attempts > 0
@@ -125,14 +271,18 @@ class _AdminScreenState extends State<AdminScreen> {
       }
       csv.writeln('');
 
-      // Classement individuel détaillé
+      // Classement individuel détaillé avec valeurs sécurisées
       csv.writeln('📊 CLASSEMENT INDIVIDUEL DÉTAILLÉ');
       csv.writeln(
         'Rang,Nom,Équipe,Score,Pénalités,Tentatives,Réussites,Efficacité',
       );
 
       final sortedPlayers = List.from(players)
-        ..sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
+        ..sort((a, b) {
+          final scoreA = a['score'] ?? 0;
+          final scoreB = b['score'] ?? 0;
+          return scoreB.compareTo(scoreA);
+        });
 
       for (int i = 0; i < sortedPlayers.length; i++) {
         final player = sortedPlayers[i];
@@ -143,11 +293,11 @@ class _AdminScreenState extends State<AdminScreen> {
             : '0.0';
 
         csv.writeln(
-          '${i + 1},${player['name']},${player['team']},${player['score']},${player['penalties'] ?? 0},$attempts,$success,${efficiency}%',
+          '${i + 1},${player['name']},${player['team']},${player['score'] ?? 0},${player['penalties'] ?? 0},$attempts,$success,${efficiency}%',
         );
       }
 
-      // Scores par équipe
+      // Scores par équipe avec valeurs sécurisées
       csv.writeln('\n👥 SCORES PAR ÉQUIPE');
       csv.writeln('Équipe,Score total,Joueurs,Tentatives,Réussites,Efficacité');
 
@@ -157,11 +307,11 @@ class _AdminScreenState extends State<AdminScreen> {
         final teamScore = _getTeamScore(team.key);
         final teamAttempts = teamPlayers.fold(
           0,
-          (sum, player) => sum + (player['attempts'] as int ?? 0),
+          (sum, player) => sum + (player['attempts'] as int? ?? 0),
         );
         final teamSuccess = teamPlayers.fold(
           0,
-          (sum, player) => sum + (player['success'] as int ?? 0),
+          (sum, player) => sum + (player['success'] as int? ?? 0),
         );
         final teamEfficiency = teamAttempts > 0
             ? ((teamSuccess / teamAttempts) * 100).toStringAsFixed(1)
@@ -172,23 +322,23 @@ class _AdminScreenState extends State<AdminScreen> {
         );
       }
 
-      // Métriques globales
+      // Métriques globales avec valeurs sécurisées
       csv.writeln('\n📈 MÉTRIQUES GLOBALES');
       final totalPoints = players.fold(
         0,
-        (sum, player) => sum + (player['score'] as int ?? 0),
+        (sum, player) => sum + (player['score'] as int? ?? 0),
       );
       final totalAttempts = players.fold(
         0,
-        (sum, player) => sum + (player['attempts'] as int ?? 0),
+        (sum, player) => sum + (player['attempts'] as int? ?? 0),
       );
       final totalSuccess = players.fold(
         0,
-        (sum, player) => sum + (player['success'] as int ?? 0),
+        (sum, player) => sum + (player['success'] as int? ?? 0),
       );
       final totalPenalties = players.fold(
         0,
-        (sum, player) => sum + (player['penalties'] as int ?? 0),
+        (sum, player) => sum + (player['penalties'] as int? ?? 0),
       );
       final globalEfficiency = totalAttempts > 0
           ? ((totalSuccess / totalAttempts) * 100).toStringAsFixed(1)
@@ -233,7 +383,7 @@ class _AdminScreenState extends State<AdminScreen> {
       player,
     ) {
       final score = player['score'];
-      // S'assurer que score est un int, sinon utiliser 0
+
       return sum + (score is int ? score : 0);
     });
   }
@@ -245,7 +395,6 @@ class _AdminScreenState extends State<AdminScreen> {
 
     print('🎮 Nouveau joueur: $playerName ($teamName) - ID: $playerId');
 
-    // Vérifier si le widget est toujours monté
     if (!mounted) {
       print('⚠️ Widget admin déjà désactivé - Ignorer joueur');
       return;
@@ -254,12 +403,20 @@ class _AdminScreenState extends State<AdminScreen> {
     final existingIndex = players.indexWhere((p) => p['id'] == playerId);
 
     if (existingIndex != -1) {
-      // Joueur existe déjà, mettre à jour le statut
+      // Joueur existe déjà, mettre à jour le statut (reconnexion)
       if (mounted) {
         setState(() {
           players[existingIndex]['connected'] = true;
         });
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔄 $playerName reconnecté'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
+        ),
+      );
       return;
     }
 
@@ -278,6 +435,14 @@ class _AdminScreenState extends State<AdminScreen> {
         });
       });
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ $playerName a rejoint le salon'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 1),
+      ),
+    );
   }
 
   void _showEnhancedStatsPreview(String csvText) {
@@ -567,6 +732,10 @@ class _AdminScreenState extends State<AdminScreen> {
           _buzzedPlayer = playerName;
           _buzzedPlayerId = playerId;
           _buzzedPlayers.add(playerId);
+
+          // 🔥 INCRÉMENTER LE COMPTEUR DE TENTATIVES
+          players[playerIndex]['attempts'] =
+              (players[playerIndex]['attempts'] ?? 0) + 1;
         });
       }
 
@@ -679,14 +848,42 @@ class _AdminScreenState extends State<AdminScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              _awardPoints(playerId, 20);
+            },
+            child: Text('+20 POINTS'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _awardPoints(playerId, 30);
+            },
+            child: Text('+30 POINTS'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _awardPoints(playerId, 40);
+            },
+            child: Text('+40 POINTS'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
               _awardPoints(playerId, 5);
             },
             child: Text('+5 POINTS'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _awardPoints(playerId, -10);
+            },
+            child: Text('-10 POINTS'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _resetBuzz();
+              _passAndLockTeam(teamName);
             },
             child: Text('PASSER'),
           ),
@@ -713,9 +910,10 @@ class _AdminScreenState extends State<AdminScreen> {
       'type': 'game_start',
       'message': 'La partie commence !',
       'questionNumber': currentQuestion,
+      // 🔥 Ajouter un indicateur pour déverrouiller toutes les équipes
+      'unlockAll': true,
     });
 
-    // Envoyer l'état initial à tous les joueurs
     _sendGameStateToAll();
   }
 
@@ -730,7 +928,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   // Ajoutez cette méthode
-  /*void _simulatePlayers() {
+  void _simulatePlayers() {
     print('🎮 Simulation de joueurs...');
 
     // Joueurs simulés
@@ -776,6 +974,26 @@ class _AdminScreenState extends State<AdminScreen> {
           'success': 0,
           'connected': true,
         },
+        {
+          'id': 'paul_equipe_b',
+          'name': 'Paul',
+          'team': 'EQUIPE B',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
+        {
+          'id': 'pierre_equipe_b',
+          'name': 'Pierre',
+          'team': 'EQUIPE A',
+          'score': 0,
+          'penalties': 0,
+          'attempts': 0,
+          'success': 0,
+          'connected': true,
+        },
       ];
     });
 
@@ -788,12 +1006,46 @@ class _AdminScreenState extends State<AdminScreen> {
         'timestamp': DateTime.now().toIso8601String(),
       });
     });
-  }*/
+  }
 
   void _lockBuzzers() {
     // Envoyer un message pour bloquer les buzzers
     final networkService = Provider.of<NetworkService>(context, listen: false);
     networkService.sendMessage({'type': 'lock_buzzers', 'locked': true});
+  }
+
+  void _passAndLockTeam(String playerTeam) {
+    // Déterminer l'équipe adverse
+    String otherTeam = (playerTeam == 'EQUIPE A') ? 'EQUIPE B' : 'EQUIPE A';
+
+    print(
+      '🔒 Verrouillage équipe $playerTeam - Déverrouillage équipe $otherTeam',
+    );
+
+    // Envoyer un message de verrouillage par équipe
+    final networkService = Provider.of<NetworkService>(context, listen: false);
+    networkService.sendMessage({
+      'type': 'lock_team_buzzers',
+      'lockedTeam': playerTeam,
+      'unlockedTeam': otherTeam,
+    });
+
+    // Réinitialiser l'état du buzz en cours mais garder le verrouillage partiel
+    setState(() {
+      _buzzedPlayer = null;
+      _buzzedPlayerId = null;
+      _firstBuzzerPlayerId = null;
+      _waitingForAnswer = false;
+      _buzzedPlayers.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🔒 $playerTeam verrouillée - ✅ $otherTeam peut buzzer'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _resetBuzz() {
@@ -839,16 +1091,20 @@ class _AdminScreenState extends State<AdminScreen> {
       currentQuestion++;
     });
 
-    // ENVOYER UN MESSAGE POUR LA NOUVELLE QUESTION
+    // ENVOYER UN MESSAGE POUR LA NOUVELLE QUESTION - DÉVERROUILLER TOUTES LES ÉQUIPES
     final networkService = Provider.of<NetworkService>(context, listen: false);
     networkService.sendMessage({
       'type': 'next_question',
       'questionNumber': currentQuestion,
+      // 🔥 Ajouter un indicateur pour déverrouiller toutes les équipes
+      'unlockAll': true,
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('➡️ Question $currentQuestion - Buzzers activés !'),
+        content: Text(
+          '➡️ Question $currentQuestion - Toutes les équipes peuvent buzzer !',
+        ),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 1),
       ),
@@ -921,29 +1177,23 @@ class _AdminScreenState extends State<AdminScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Points pour ${players[playerIndex]['name']}'),
+        title: Text('Pénalités pour ${players[playerIndex]['name']}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _PointsButton(
-              points: 10,
-              onPressed: () {
-                Navigator.pop(context);
-                _awardPoints(playerId, 10);
-              },
-            ),
-            _PointsButton(
-              points: 5,
-              onPressed: () {
-                Navigator.pop(context);
-                _awardPoints(playerId, 5);
-              },
-            ),
-            _PointsButton(
               points: -5,
               onPressed: () {
                 Navigator.pop(context);
-                _addPenalty(playerId);
+                _addPenalty(playerId, -5);
+              },
+            ),
+            const SizedBox(height: 5),
+            _PointsButton(
+              points: -10,
+              onPressed: () {
+                Navigator.pop(context);
+                _addPenalty(playerId, -10);
               },
             ),
           ],
@@ -964,48 +1214,15 @@ class _AdminScreenState extends State<AdminScreen> {
     return players.length;
   }
 
-  /* void _simulateBuzz() {
-    if (players.isNotEmpty && isGameStarted) {
-      setState(() {
-        _buzzedPlayer = players[0]['name'];
-      });
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('BUZZ !'),
-          content: Text('$_buzzedPlayer a buzzé !'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showPointsDialog(0);
-              },
-              child: const Text('ATTRIBUER POINTS'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _buzzedPlayer = null;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('IGNORER'),
-            ),
-          ],
-        ),
-      );
-    }
-  }*/
-
-  void _addPenalty(String playerId) {
+  void _addPenalty(String playerId, int penalty) {
     final playerIndex = players.indexWhere((p) => p['id'] == playerId);
     if (playerIndex == -1) return;
 
     setState(() {
       players[playerIndex]['penalties'] =
           (players[playerIndex]['penalties'] ?? 0) + 1;
-      players[playerIndex]['score'] = (players[playerIndex]['score'] ?? 0) - 5;
+      players[playerIndex]['score'] =
+          (players[playerIndex]['score'] ?? 0) - penalty;
     });
 
     // Envoyer la pénalité au joueur
@@ -1013,7 +1230,7 @@ class _AdminScreenState extends State<AdminScreen> {
     networkService.sendMessage({
       'type': 'penalty',
       'playerId': playerId,
-      'points': -5,
+      'points': penalty,
       'playerName': players[playerIndex]['name'],
       'totalScore': players[playerIndex]['score'],
     });
@@ -1021,7 +1238,7 @@ class _AdminScreenState extends State<AdminScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '⛔ Pénalité de 5 pts pour ${players[playerIndex]['name']}',
+          '⛔ Pénalité de $penalty pts pour ${players[playerIndex]['name']}',
         ),
         backgroundColor: Colors.orange,
         duration: Duration(seconds: 1),
@@ -1115,9 +1332,15 @@ class _AdminScreenState extends State<AdminScreen> {
 
     setState(() {
       players[playerIndex]['score'] = newScore;
+
+      // 🔥 INCRÉMENTER LE COMPTEUR DE RÉUSSITES SI POINTS POSITIFS
+      if (points > 0) {
+        players[playerIndex]['success'] =
+            (players[playerIndex]['success'] ?? 0) + 1;
+      }
     });
 
-    // ENVOYER LES POINTS À TOUS LES JOUEURS (CORRIGÉ)
+    // ENVOYER LES POINTS À TOUS LES JOUEURS
     final networkService = Provider.of<NetworkService>(context, listen: false);
     networkService.sendMessage({
       'type': 'score_update',
@@ -1125,7 +1348,7 @@ class _AdminScreenState extends State<AdminScreen> {
       'points': points,
       'playerName': players[playerIndex]['name'],
       'teamName': players[playerIndex]['team'],
-      'totalScore': newScore, // ← UTILISER newScore calculé
+      'totalScore': newScore,
     });
 
     _lockBuzzers();
@@ -1172,13 +1395,6 @@ class _AdminScreenState extends State<AdminScreen> {
                         ),
                       ],
 
-                      /*ElevatedButton(
-                        onPressed: _simulatePlayers,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                        ),
-                        child: const Text('TEST SIMULATION'),
-                      ),*/
                       if (_buzzedPlayers.isNotEmpty) ...[
                         SizedBox(height: 5),
                         Text(
@@ -1292,26 +1508,80 @@ class _AdminScreenState extends State<AdminScreen> {
                         itemCount: players.length,
                         itemBuilder: (context, index) {
                           final player = players[index];
+                          final attempts = player['attempts'] ?? 0;
+                          final success = player['success'] ?? 0;
+                          final efficiency = attempts > 0
+                              ? ((success / attempts) * 100).toStringAsFixed(1)
+                              : '0.0';
+
                           return Card(
+                            color: player['connected']
+                                ? null
+                                : Colors.grey[200], // Gris si déconnecté
                             child: ListTile(
-                              leading: Icon(
-                                player['connected']
-                                    ? Icons.person
-                                    : Icons.person_off,
-                                color: player['connected']
-                                    ? Colors.green
-                                    : Colors.grey,
+                              leading: Stack(
+                                children: [
+                                  Icon(
+                                    Icons.person,
+                                    color: player['connected']
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                  if (!player['connected'])
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Icon(
+                                        Icons.link_off,
+                                        size: 12,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                ],
                               ),
-                              title: Text(player['name']),
-                              subtitle: Text(player['team']),
+                              title: Row(
+                                children: [
+                                  Text(player['name']),
+                                  if (!player['connected'])
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        '(déconnecté)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.red,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(player['team']),
+                                  Text(
+                                    'Tentatives: $attempts | Réussites: $success | Efficacité: ${efficiency}%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
                               trailing: Text(
                                 '${player['score']} pts',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
+                                  color: player['connected']
+                                      ? Colors.blue
+                                      : Colors.grey,
                                 ),
                               ),
-                              onTap: () => _showPointsDialog(player['id']),
+                              onTap: player['connected']
+                                  ? () => _showPointsDialog(player['id'])
+                                  : null,
                             ),
                           );
                         },
@@ -1334,6 +1604,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     ),
                   ),
                   SizedBox(width: 5),
+
                   ElevatedButton(
                     onPressed: _serverStarted && !isGameStarted
                         ? _startGame
@@ -1378,6 +1649,109 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ],
               ),
+              // 🔥 SECTION SIMULATION - FACILE À SUPPRIMER (début)
+              /*  Card(
+                margin: EdgeInsets.all(8),
+                color: Colors.purple[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'OUTILS DE TEST',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple[800],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed:
+                                _simulationService.startCompleteSimulation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  _simulationService.isSimulationRunning
+                                  ? Colors.red
+                                  : Colors.purple,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            child: Text(
+                              _simulationService.isSimulationRunning
+                                  ? 'STOP'
+                                  : 'SIMUL',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: _simulationService.startQuickGame,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            child: Text(
+                              'QUICK',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: Icon(Icons.bolt, size: 20),
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'add_players':
+                                  _simulationService.addSimulatedPlayers();
+                                  break;
+                                case 'buzz':
+                                  _simulationService.simulateManualBuzz();
+                                  break;
+                                case 'score':
+                                  _simulationService.simulateManualScore();
+                                  break;
+                                case 'penalty':
+                                  _simulationService.simulateManualPenalty();
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'add_players',
+                                child: Text('➕ Ajouter joueurs'),
+                              ),
+                              PopupMenuItem(
+                                value: 'buzz',
+                                child: Text('🎯 Simuler buzz'),
+                              ),
+                              PopupMenuItem(
+                                value: 'score',
+                                child: Text('⭐ Ajouter points'),
+                              ),
+                              PopupMenuItem(
+                                value: 'penalty',
+                                child: Text('⛔ Pénalité'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),*/
+              // 🔥 SECTION SIMULATION - FACILE À SUPPRIMER (fin)
             ],
           ),
         ),
