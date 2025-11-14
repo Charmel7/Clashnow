@@ -21,7 +21,7 @@ class AppTheme {
         // TITRES TRÈS VISIBLES (projection)
         headlineLarge: TextStyle(
           fontFamily: 'SourceCodePro',
-          fontSize: 32,
+          fontSize: 20,
           fontWeight: FontWeight.w700, // Semi-bold pour Source Code Pro
           color: Colors.blueGrey[900],
           letterSpacing: 1.0, // Augmenter l'espacement pour lisibilité
