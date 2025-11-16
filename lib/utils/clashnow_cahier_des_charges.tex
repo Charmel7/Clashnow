@@ -1,0 +1,151 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10},
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red!60!black}
+}
+\usetikzlibrary{arrows,shapes.geometric,positioning}
+\title{Cahier des charges technique \\ \large Buzzers physiques pour ClashNow}
+\author{Équipe Projet \textit{Génie en Herbe}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Présentation du projet et origine}
+Le projet consiste à développer un système de 10 buzzers physiques (en forme de stylo ou de galette allongée actionnable  au pouce ) pour être intégré à l’application ClashNow (gestion de parties de \textit{Génie en Herbe}). L’idée est née d’une blague sur des  galettes( référence à un buzzer en forme de bâton). Chaque buzzer contiendra un bouton poussoir (et éventuellement une LED indicatrice) et sera relié à un microcontrôleur ESP32. L’ESP32, connecté au PC via USB, communiquera avec l’application ClashNow pour gérer les signaux de buzz.
+
+
+\begin{center}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.2\textwidth]{a cylindrical buzzer.png}
+  \caption{Exemple de buzzer-button}
+  \label{fig:schema_buzzer}
+\end{figure}
+\end{center}
+
+\section{Description technique du système}
+Le système est constitué d’un microcontrôleur ESP32 relié à 10 boutons poussoirs externes. Chaque bouton correspond à un buzzer et est connecté à une entrée numérique dédiée de l’ESP32. Les boutons sont câblés en pull-down (broches reliées à la masse) ou bien en pull-up interne selon le besoin. Un fil de masse commun (GND) est partagé entre tous les buzzers et l’ESP32. Optionnellement, chaque buzzer peut inclure une LED témoin (avec résistance de 220~$\Omega$) pour indiquer visuellement la validation d’un buzz. L’ESP32 se programme via l’IDE Arduino (ou équivalent) pour détecter les appuis sur les boutons et transmettre les informations à l’application PC ClashNow.
+
+
+
+
+\section{Liste des composants nécessaires (YoupiLab, Bénin)}
+\begin{itemize}
+  \item \textbf{ESP32 (module de développement)} : environ 6\,200~FCFA. Modèle compatible Arduino (NodeMCU-ESP32 ou similaire) avec port USB intégré.
+  \item \textbf{Boutons poussoirs (momentanés)} : 10 unités à 40~FCFA chacune. Petits boutons 4 pattes à montage sur plaque.
+  \item \textbf{LED + résistances (220~$\Omega$)} : 10 LED 3mm (rouges, par exemple, 20~FCFA pièce) + 10 résistances 220~$\Omega$ (20~FCFA pièce). Chaque LED est câblée en série avec sa résistance.
+  \item \textbf{Câble USB (Type A vers micro-USB)} : 1 câble, environ 580~FCFA. Longueur recommandée : 1 à 2~m.
+  \item \textbf{Câblage (fils électriques longs)} : \textit{Exemple :} lot de jumpers mâle/femelle de 30~cm (lot de 40, environ 1\,600~FCFA). On privilégie du câble souple (AWG24–26) pour plus de confort.
+  \item \textbf{Borniers/Connecteurs} : borniers 2 broches (120~FCFA/unité) ou blocs de connexion équivalents. Un bornier par buzzer permet d’éviter les soudures.
+  \item \textbf{Plaques d’essai (breadboards)} : par exemple, kit de 3 protoboards 400 points (595~FCFA pour 3). Utilisées pour regrouper les connexions sans soudure.
+  \item \textbf{Boîtiers recyclés (stylo, tube ou autre)} : 10 boîtiers en matériaux réutilisés (embouts de stylo, coques de lampe torche, etc.). Aucun coût si récupération locale.
+\end{itemize}
+
+\section{Répartition des tâches}
+\begin{itemize}
+  \item \textbf{Équipe GEP (Montage/Brico)} : responsable de la partie physique. Découpe/adaptation des boîtiers, installation des boutons et LEDs, câblage des buzzers (fils + résistances). Connexions sur breadboards ou borniers selon le schéma. Vérification de la continuité et de la fixation des composants.
+  \item \textbf{Équipe GMM (Codage/Interface)} : responsable du développement logiciel. Programmation de l’ESP32 (ex. via Arduino) pour lire les 10 entrées digitales et transmettre les signaux au PC via USB. Adaptation de l’application ClashNow pour recevoir les signaux. Tests de communication série et validation fonctionnelle.
+\end{itemize}
+
+\section{Schéma de montage (ESP32 vers buzzers)}
+
+\begin{center}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{diagram of an ESP32 .png}
+  \caption{Schéma de câblage des buzzers physiques avec ESP32 et PC}
+  \label{fig:schema_buzzers}
+\end{figure}
+\end{center}
+\vspace{0.3cm}
+Ce schéma simplifié(généré avec un prompt) montre l’ESP32 relié à 10 boutons externes. Chaque bouton est connecté entre une broche digitale de l’ESP32 et le GND commun. Les 10 fils de signal relient l’ESP32 aux boutons, et un fil de masse partagé retourne au GND de l’ESP32.
+
+\section{Estimation du temps de fabrication}
+Pour assembler 10 buzzers : environ 1 journée de travail (6 à 8 heures) pour une équipe de 2 personnes. Détail : environ 2~h pour la préparation des boîtiers, 3~h pour le câblage et le montage des boutons/LEDs sur breadboard, 1~h pour le codage et les tests initiaux, plus 1~h de marge pour le débogage. Le projet peut donc être achevé en 1 à 2 journées de travail étudiant.
+
+\section{Estimation du budget total}
+Calcul pour 10 buzzers (en FCFA) :
+\begin{itemize}
+  \item ESP32 : 6\,200
+  \item Boutons (10 × 40) : 400
+  \item LED (10 × 20) : 200
+  \item Résistances 220~$\Omega$ (10 × 20) : 200
+  \item Câble USB : 580
+  \item Lot de jumpers 30~cm (~40 câbles) : 1\,600
+  \item Borniers 2 pts (10 × 120) : 1\,200
+  \item Plaques protoboard (pack de 3) : 595
+\end{itemize}
+Total estimé : \textbf{11\,000~FCFA} pour l’ensemble. Ce budget couvre tous les composants neufs nécessaires à la fabrication des 10 buzzers, hors boîtiers recyclés (coût négligeable).
+
+Les cotisations pour buzzers inutilisées pourraient être utiles.
+
+\section{Tests et validation}
+\begin{itemize}
+  \item \textbf{Test anti-rebond} : appui unique ne génère qu'un seul signal (validation logicielle).
+  \item \textbf{Test de première arrivée} : vérifier que le premier buzz est bien détecté et que les autres sont verrouillés.
+  \item \textbf{Test de robustesse} : plusieurs cycles d'appuis, tests de câblage, tests en conditions réelles (avec 10 participants).
+  \item \textbf{Test d'intégration ClashNow} : vérification des exports CSV, des logs et de la réinitialisation via l’interface utilisateur.
+\end{itemize}
+
+\section{Livrables}
+\begin{itemize}
+  \item Prototype fonctionnel (10 buzzers + ESP32 + PC intégré à ClashNow).
+  \item Code Arduino documenté et commenté.
+  \item Module logiciel pour ClashNow capable de lire le port série et transformer les données en événements JSON.
+  \item Schémas et documentation d'assemblage (PDF/HTML).
+  \item Tableau de tests et rapports de validation.
+\end{itemize}
+
+\section{Annexes}
+\subsection{Exemple de code Arduino (anti-rebond, verrouillage)}
+\begin{lstlisting}[language=C]
+// Exemple simplifié Arduino (10 buzzers)
+const int buzzerPins[10] = {2,3,4,5,6,7,8,9,10,11};
+unsigned long lastTime[10] = {0};
+const unsigned long debounceDelay = 200;
+bool locked = false;
+void setup() {
+  Serial.begin(115200);
+  for (int i=0;i<10;i++) pinMode(buzzerPins[i], INPUT_PULLUP);
+}
+void loop() {
+  if (locked) {
+    // ignore inputs until unlocked by PC
+    if (Serial.available()) {
+      String cmd = Serial.readStringUntil('\n');
+      cmd.trim();
+      if (cmd == "UNLOCK") locked = false;
+    }
+    delay(10);
+    return;
+  }
+  for (int i=0;i<10;i++) {
+    if (digitalRead(buzzerPins[i]) == LOW) { // pressed (active low)
+      unsigned long now = millis();
+      if (now - lastTime[i] > debounceDelay) {
+        Serial.print("BUZZ_"); Serial.println(i+1);
+        locked = true; // lock until PC resets
+        lastTime[i] = now;
+        break; // stop checking others
+      }
+    }
+  }
+  delay(5);
+}
+\end{lstlisting}
+
+
+
+\end{document}
