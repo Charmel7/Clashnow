@@ -5,11 +5,28 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{float}
+\usepackage[french]{babel}
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+
+\fancyhead[L]{Clashnow Real  Buzzer Extension}
+\fancyhead[C]{}
+\fancyhead[R]{16 novembre 2025}
+
+\fancyfoot[L]{}
+\fancyfoot[C]{\thepage}
+\fancyfoot[R]{Nostradamus Club Abomey}
+
+
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
   frame=single,
-  backgroundcolor=\color{gray!10},
+  backgroundcolor=\color{gray!5},
   keywordstyle=\color{blue},
   commentstyle=\color{green!50!black},
   stringstyle=\color{red!60!black}
@@ -23,7 +40,7 @@
 \maketitle
 
 \section{Présentation du projet et origine}
-Le projet consiste à développer un système de 10 buzzers physiques (en forme de stylo ou de galette allongée actionnable  au pouce ) pour être intégré à l’application ClashNow (gestion de parties de \textit{Génie en Herbe}). L’idée est née d’une blague sur des  galettes( référence à un buzzer en forme de bâton). Chaque buzzer contiendra un bouton poussoir (et éventuellement une LED indicatrice) et sera relié à un microcontrôleur ESP32. L’ESP32, connecté au PC via USB, communiquera avec l’application ClashNow pour gérer les signaux de buzz.
+Le projet consiste à développer un système de 10 buzzers physiques (en forme de stylo ou de galette allongée actionnable  au pouce ) pour être intégré à l’application ClashNow (gestion de parties de \textit{Génie en Herbe}). L’idée est née de la référence aux galettes de Elgé. Chaque buzzer contiendra un bouton poussoir (et éventuellement une LED indicatrice) et sera relié à un microcontrôleur ESP32. L’ESP32, connecté au PC via USB, communiquera avec l’application ClashNow pour gérer les signaux de buzz.
 
 
 \begin{center}
@@ -55,11 +72,10 @@ Le système est constitué d’un microcontrôleur ESP32 relié à 10 boutons po
 
 \section{Répartition des tâches}
 \begin{itemize}
-  \item \textbf{Equipe TP(Brico)}: responsable de la partie physique. Découpe/adaptation des boîtiers .Financement :-)
-  \item \textbf{Équipe GEP (Montage)} :  installation des boutons et LEDs, câblage des buzzers (fils + résistances). Connexions sur breadboards ou borniers selon le schéma. Vérification de la continuité et de la fixation des composants.
+\item \textbf{Equipe TP (Brico)}: responsable de la partie physique. Découpe/adaptation des boîtiers . Financement :-)
+  \item \textbf{Équipe GEP (Montage)} :installation des boutons et LEDs, câblage des buzzers (fils + résistances). Connexions sur breadboards ou borniers selon le schéma. Vérification de la continuité et de la fixation des composants.
   \item \textbf{Équipe GMM (Interface)} : responsable du développement logiciel. Programmation de l’ESP32 (ex. via Arduino) pour lire les 10 entrées digitales et transmettre les signaux au PC via USB. Adaptation de l’application ClashNow pour recevoir les signaux. Tests de communication série et validation fonctionnelle.
-  \item \textbf{Equipe INSPEI ( Main d'oeuvre)}: rejoignent l'équipe de leur choix.
-
+\item \textbf{Equipe INSPEI ( Main d'oeuvre)}: rejoignent l'équipe de leur choix.
 \end{itemize}
 
 \section{Schéma de montage (ESP32 vers buzzers)}
