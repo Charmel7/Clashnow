@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Présentation CLASHNOW</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1A237E;
+            --secondary: #FF6D00;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --error: #F44336;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            padding: 60px 80px;
+            background: linear-gradient(135deg, var(--primary) 0%, #283593 100%);
+            color: white;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide h1 {
+            font-size: 4em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .slide h2 {
+            font-size: 3em;
+            margin-bottom: 40px;
+            color: var(--secondary);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .slide h3 {
+            font-size: 2em;
+            margin: 30px 0 20px 0;
+            color: var(--secondary);
+        }
+
+        .slide p, .slide li {
+            font-size: 1.5em;
+            line-height: 1.8;
+            margin: 15px 0;
+        }
+
+        .slide ul {
+            margin-left: 50px;
+        }
+
+        .slide li {
+            margin: 20px 0;
+        }
+
+        /* Slide spécifique : Titre */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide .logo {
+            width: 150px;
+            height: 150px;
+            background: var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5em;
+            margin: 0 auto 40px;
+            box-shadow: 0 10px 30px rgba(255, 109, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .title-slide .subtitle {
+            font-size: 1.8em;
+            opacity: 0.9;
+            font-weight: 300;
+            margin-top: 20px;
+        }
+
+        /* Grid pour features */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feature-box {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid var(--secondary);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-box h3 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .feature-box p {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        /* Architecture diagram */
+        .architecture {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 50px 0;
+            font-size: 1.3em;
+        }
+
+        .arch-box {
+            background: rgba(255,255,255,0.15);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+
+        .arch-arrow {
+            font-size: 3em;
+            color: var(--secondary);
+        }
+
+        /* Navigation */
+        .nav-controls {
+            display: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255,255,255,0.2);
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.3em;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1.2em;
+        }
+
+        th {
+            background: var(--secondary);
+            padding: 20px;
+            text-align: left;
+        }
+
+        td {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* Highlight box */
+        .highlight {
+            background: var(--secondary);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 1.4em;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(255, 109, 0, 0.4);
+        }
+
+        /* Stats display */
+        .stats-display {
+            display: flex;
+            justify-content: space-around;
+            margin: 40px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 4em;
+            font-weight: bold;
+            color: var(--secondary);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stat-label {
+            font-size: 1.5em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+
+        /* Comparison slide */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 40px 0;
+        }
+
+        .comparison-item {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .comparison-item.old {
+            border-left: 5px solid var(--error);
+        }
+
+        .comparison-item.new {
+            border-left: 5px solid var(--success);
+        }
+
+        /* Demo screenshot placeholder */
+        .screenshot-placeholder {
+            background: rgba(255,255,255,0.2);
+            height: 400px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin: 30px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Real screenshots */
+        .screenshot-img {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 30px auto;
+            display: block;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+
+        .screenshot-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 30px;
+            margin: 40px 0;
+            align-items: center;
+        }
+
+        .screenshot-box {
+            flex: 1;
+            text-align: center;
+        }
+
+        .screenshot-box img {
+            max-width: 100%;
+            height: 350px;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .screenshot-label {
+            font-size: 1.2em;
+            margin-top: 15px;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Titre -->
+        <div class="slide active title-slide">
+            <div class="logo">⚡</div>
+            <h1>CLASHNOW</h1>
+            <p class="subtitle">Système de Buzzers Numérique pour Génie en Herbe</p>
+            <img src="Clashnow/splash.png" alt="Logo CLASHNOW" class="screenshot-img" style="max-height: 300px; margin-top: 40px;">
+            <p style="margin-top: 40px; font-size: 1.3em; opacity: 0.8;">Présentation du Projet</p>
+        </div>
+
+        <!-- Slide 2: Problématique -->
+        <div class="slide">
+            <h2>Le Problème</h2>
+            <div class="comparison">
+                <div class="comparison-item old">
+                    <h3 style="color: var(--error);">Buzzers Traditionnels</h3>
+                    <ul>
+                        <li>Coût élevé (200-500€)</li>
+                        <li>Matériel encombrant</li>
+                        <li>Câbles partout</li>
+                        <li>Maintenance complexe</li>
+                        <li>Pannes fréquentes</li>
+                    </ul>
+                </div>
+                <div class="comparison-item new">
+                    <h3 style="color: var(--success);">Solution CLASHNOW</h3>
+                    <ul>
+                        <li>100% gratuit & open-source</li>
+                        <li>Utilise appareils existants</li>
+                        <li>Sans fil (WiFi)</li>
+                        <li>Pas de maintenance</li>
+                        <li>Statistiques avancées</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Qu'est-ce que CLASHNOW? -->
+        <div class="slide">
+            <h2>Qu'est-ce que CLASHNOW ?</h2>
+            <p style="font-size: 1.8em; margin: 40px 0;">Une application moderne qui remplace les buzzers physiques pour les compétitions de génie en herbe.</p>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h3>Économique</h3>
+                    <p>Utilisez vos appareils existants (PC + smartphones)</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Instantané</h3>
+                    <p>Détection du premier buzz en temps réel</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Intelligent</h3>
+                    <p>Statistiques détaillées, export des résultats</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Simple</h3>
+                    <p>Interface intuitive pour tous les âges</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Architecture -->
+        <div class="slide">
+            <h2>Architecture du Système</h2>
+            <div class="screenshot-container">
+                <div class="screenshot-box">
+                    <img src="Clashnow/admin_server_off.png" alt="Admin Windows">
+                    <div class="screenshot-label">Admin Windows</div>
+                </div>
+                <div style="font-size: 3em; color: var(--secondary);">→</div>
+                <div class="screenshot-box">
+                    <img src="Clashnow/home_screen.png" alt="Joueur Android">
+                    <div class="screenshot-label">Joueur Android</div>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 30px;">
+                Tous les appareils sur le même réseau WiFi = Communication instantanée
+            </div>
+        </div>
+
+        <!-- Slide 5: Fonctionnalités Admin -->
+        <div class="slide">
+            <h2>👑 Panneau Administrateur</h2>
+            <img src="Clashnow/player_form_ready.png" alt="Panneau admin" class="screenshot-img">
+            <ul style="font-size: 1.4em; margin-top: 30px;">
+                <li><strong style="color: var(--secondary);">SERVER :</strong> Démarre le serveur et affiche l'IP</li>
+                <li><strong style="color: var(--secondary);">START :</strong> Lance la partie (active les buzzers)</li>
+                <li><strong style="color: var(--secondary);">Gestion des buzz :</strong> Attribuer +5 à +40 points ou -10</li>
+                <li><strong style="color: var(--secondary);">STATS :</strong> Statistiques complètes en temps réel</li>
+            </ul>
+        </div>
+
+        <!-- Slide 6: Fonctionnalités Joueur -->
+        <div class="slide">
+            <h2>📱 Interface Joueur</h2>
+            <div class="screenshot-container">
+                <div class="screenshot-box">
+                    <img src="Clashnow/player_form.png" alt="Formulaire connexion">
+                    <div class="screenshot-label">Connexion</div>
+                </div>
+                <div class="screenshot-box">
+                    <img src="Clashnow/buzzer_disponible.png" alt="Buzzer actif">
+                    <div class="screenshot-label">Buzzer Actif 🔴</div>
+                </div>
+                <div class="screenshot-box">
+                    <img src="Clashnow/Buzzer_locked.png" alt="Buzzer verrouillé">
+                    <div class="screenshot-label">Buzzer Verrouillé 🔒</div>
+                </div>
+            </div>
+            <h3 style="margin-top: 30px;">Connexion en 3 étapes</h3>
+            <ol style="font-size: 1.4em; margin-left: 80px; margin-top: 20px;">
+                <li>Entrer l'IP du serveur admin</li>
+                <li>Saisir son nom et choisir son équipe</li>
+                <li>Buzzer dès que prêt !</li>
+            </ol>
+        </div>
+
+        <!-- Slide 7: Système de Points -->
+        <div class="slide">
+            <h2>🎯 Système de Points Flexible</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Points</th>
+                        <th>Utilisation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>+5 points</strong></td>
+                        <td>Bonus, réponse partielle</td>
+                    </tr>
+                    <tr>
+                        <td><strong>+10 points</strong></td>
+                        <td>Question standard</td>
+                    </tr>
+                    <tr>
+                        <td><strong>+20 points</strong></td>
+                        <td>Question moyenne, identification</td>
+                    </tr>
+                    <tr>
+                        <td><strong>+30 points</strong></td>
+                        <td>Question difficile, identification</td>
+                    </tr>
+                    <tr>
+                        <td><strong>+40 points</strong></td>
+                        <td>Question très difficile, identification</td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color: var(--error);">-10 points</strong></td>
+                        <td>Pénalité (mauvaise réponse)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 8: Statistiques -->
+        <div class="slide">
+            <h2>📊 Statistiques Détaillées</h2>
+            <img src="Clashnow/stats_details.png" alt="Statistiques" class="screenshot-img">
+            <h3 style="margin-top: 30px;">Métriques suivies en temps réel :</h3>
+            <div class="features-grid" style="margin-top: 30px;">
+                <div class="feature-box">
+                    <h3>👤 Par Joueur</h3>
+                    <ul>
+                        <li>Tentatives & Réussites</li>
+                        <li>Efficacité (%)</li>
+                        <li>Score total</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <h3>👥 Par Équipe</h3>
+                    <ul>
+                        <li>Score cumulé</li>
+                        <li>Taux de réussite</li>
+                        <li>🏆 Top Scorer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Fonctionnalités Avancées -->
+        <div class="slide">
+            <h2>⚡ Fonctionnalités Avancées</h2>
+            <div class="screenshot-container">
+                <div class="screenshot-box">
+                    <img src="Clashnow/buzz_score.png" alt="Attribution points">
+                    <div class="screenshot-label">Attribution de Points</div>
+                </div>
+                <div class="screenshot-box">
+                    <img src="Clashnow/captain_penalite.png" alt="Capitaines">
+                    <div class="screenshot-label">Système de Capitaines ⭐</div>
+                </div>
+            </div>
+            <ul style="font-size: 1.4em; margin-top: 40px;">
+                <li><strong style="color: var(--secondary);">Capitaines :</strong> Désignez les leaders d'équipe (étoile ⭐)</li>
+                <li><strong style="color: var(--secondary);">Verrouillage Stratégique :</strong> Option PASSER pour l'autre équipe</li>
+                <li><strong style="color: var(--secondary);">Export des Résultats :</strong> Sauvegarde pour analyse</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Prérequis Techniques -->
+        <div class="slide">
+            <h2>💻 Prérequis Techniques</h2>
+            <div class="comparison">
+                <div class="comparison-item">
+                    <h3>Admin (Windows)</h3>
+                    <ul>
+                        <li>Windows 10+</li>
+                        <li>50 MB d'espace</li>
+                        <li>Connexion WiFi</li>
+                        <li>Port 8080 disponible</li>
+                    </ul>
+                </div>
+                <div class="comparison-item">
+                    <h3>Joueurs (Android)</h3>
+                    <ul>
+                        <li>Android 8.0+</li>
+                        <li>50 MB d'espace</li>
+                        <li>Connexion WiFi</li>
+                        <li>Même réseau que l'admin</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 40px;">
+                ⚠️ Important : Tous les appareils doivent être sur le MÊME réseau WiFi
+            </div>
+        </div>
+
+        <!-- Slide 11: Installation -->
+        <div class="slide">
+            <h2>📥 Installation Rapide</h2>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h3>1️⃣ Admin</h3>
+                    <ol style="font-size: 1.1em; margin-top: 20px;">
+                        <li>Télécharger clashnow.zip</li>
+                        <li>Extraire les fichiers</li>
+                        <li>Lancer clashnow.exe</li>
+                        <li>Cliquer sur SERVER</li>
+                    </ol>
+                </div>
+                <div class="feature-box">
+                    <h3>2️⃣ Joueurs</h3>
+                    <ol style="font-size: 1.1em; margin-top: 20px;">
+                        <li>Transférer clashnow.apk</li>
+                        <li>Autoriser sources inconnues</li>
+                        <li>Installer l'APK</li>
+                        <li>Se connecter avec l'IP admin</li>
+                    </ol>
+                </div>
+            </div>
+            <p style="text-align: center; font-size: 1.5em; margin-top: 50px; color: var(--secondary);">
+                ⏱️ Temps d'installation : ~5 minutes
+            </p>
+        </div>
+
+        <!-- Slide 12: Cas d'Usage -->
+        <div class="slide">
+            <h2>🎓 Qui Peut Utiliser CLASHNOW ?</h2>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h3>🏫 Établissements Scolaires</h3>
+                    <p>Lycées, collèges pour compétitions internes</p>
+                </div>
+                <div class="feature-box">
+                    <h3>🎯 Clubs de GEH</h3>
+                    <p>Entraînements et tournois officiels</p>
+                </div>
+                <div class="feature-box">
+                    <h3>🎪 Événements</h3>
+                    <p>Quiz, soirées jeux, team building</p>
+                </div>
+                <div class="feature-box">
+                    <h3>👨‍🏫 Enseignants</h3>
+                    <p>Révisions ludiques en classe</p>
+                </div>
+            </div>
+            <div class="stats-display" style="margin-top: 60px;">
+                <div class="stat-item">
+                    <div class="stat-number">4-12</div>
+                    <div class="stat-label">Joueurs recommandés</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Questions possibles</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0€</div>
+                    <div class="stat-label">Coût total</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Évolution Future - Arduino -->
+        <div class="slide">
+            <h2>🔮 Évolution Future : Buzzers Physiques Arduino</h2>
+            <h3 style="margin-bottom: 30px;">Projet en développement 🚧</h3>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h3>💡 Concept</h3>
+                    <p>Boutons poussoirs physiques reliés à un Arduino, connecté au PC via USB</p>
+                </div>
+                <div class="feature-box">
+                    <h3>💰 Coût Estimé</h3>
+                    <p>60-150€ pour 6-8 buzzers complets (vs 500€+ pour buzzers pro)</p>
+                </div>
+                <div class="feature-box">
+                    <h3>🎯 Avantages</h3>
+                    <p>Sensation tactile, fiabilité, LEDs feedback, personnalisable</p>
+                </div>
+                <div class="feature-box">
+                    <h3>👥 Projet Collaboratif</h3>
+                    <p>Énergéticiens, matheux, informaticiens : tous mobilisés !</p>
+                </div>
+            </div>
+            <p style="text-align: center; font-size: 1.5em; margin-top: 40px; color: var(--secondary);">
+                ⚡ Précision de détection : ~0.01ms avec interruptions Arduino
+            </p>
+        </div>
+
+        <!-- Slide 14: Avantages Clés -->
+        <div class="slide">
+            <h2>✨ Pourquoi Choisir CLASHNOW ?</h2>
+            <div class="stats-display" style="margin-top: 60px;">
+                <div class="stat-item">
+                    <div class="stat-number" style="font-size: 3em;">100%</div>
+                    <div class="stat-label">Gratuit</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" style="font-size: 3em;">0</div>
+                    <div class="stat-label">Maintenance</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" style="font-size: 3em;">∞</div>
+                    <div class="stat-label">Parties</div>
+                </div>
+            </div>
+            <ul style="font-size: 1.6em; margin-top: 60px;">
+                <li>✅ Pas de matériel coûteux à acheter</li>
+                <li>✅ Statistiques impossibles avec buzzers traditionnels</li>
+                <li>✅ Mise à jour et améliorations continues</li>
+                <li>✅ Open-source et personnalisable</li>
+                <li>✅ Support communautaire actif</li>
+            </ul>
+        </div>
+
+        <!-- Slide 15: Démonstration -->
+        <div class="slide">
+            <h2>🎬 Flux Complet d'une Partie</h2>
+            <div class="screenshot-container" style="flex-direction: column; gap: 20px;">
+                <div style="display: flex; gap: 30px; justify-content: center;">
+                    <div class="screenshot-box" style="max-width: 400px;">
+                        <img src="Clashnow/admin_server_off.png" alt="Démarrage serveur" style="height: 250px;">
+                        <div class="screenshot-label">1️⃣ Démarrage Serveur</div>
+                    </div>
+                    <div class="screenshot-box" style="max-width: 400px;">
+                        <img src="Clashnow/player_form_connected.png" alt="Connexion joueur" style="height: 250px;">
+                        <div class="screenshot-label">2️⃣ Connexion Joueurs</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 30px; justify-content: center;">
+                    <div class="screenshot-box" style="max-width: 400px;">
+                        <img src="Clashnow/simulation_partie.png" alt="En jeu" style="height: 250px;">
+                        <div class="screenshot-label">3️⃣ Partie en Cours</div>
+                    </div>
+                    <div class="screenshot-box" style="max-width: 400px;">
+                        <img src="Clashnow/stats_details.png" alt="Résultats" style="height: 250px;">
+                        <div class="screenshot-label">4️⃣ Résultats Finaux</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Call to Action -->
+        <div class="slide title-slide">
+            <h1 style="font-size: 3.5em;">Essayez CLASHNOW</h1>
+            <div class="highlight" style="font-size: 1.5em; margin: 50px auto; max-width: 800px;">
+                Téléchargement gratuit disponible maintenant !
+            </div>
+            <div style="margin-top: 60px;">
+                <h3 style="font-size: 1.8em; margin-bottom: 30px;">📦 Contenu du Pack</h3>
+                <ul style="font-size: 1.4em; text-align: left; max-width: 600px; margin: 0 auto;">
+                    <li>✅ Application Windows (Admin)</li>
+                    <li>✅ Application Android (Joueurs)</li>
+                    <li>✅ Guide utilisateur complet</li>
+                    <li>✅ Code source (open-source)</li>
+                    <li>✅ Support communautaire</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 17: Questions & Contact -->
+        <div class="slide title-slide">
+            <h1 style="font-size: 3.5em; margin-bottom: 50px;">Questions ?</h1>
+            <div style="font-size: 1.6em; line-height: 2.5; text-align: center;">
+                <p><svg style="width: 32px; height: 32px; vertical-align: middle; fill: white;" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/></svg> <strong>Support :</strong> Communauté Discord / WhatsApp</p>
+                <p><svg style="width: 32px; height: 32px; vertical-align: middle; fill: white;" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5l-8-5V6l8 5l8-5v2z"/></svg> <strong>Contact :</strong> [Votre email]</p>
+                <p><svg style="width: 32px; height: 32px; vertical-align: middle; fill: white;" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12c0 5.303 3.438 9.8 8.205 11.385c.6.113.82-.258.82-.577c0-.285-.01-1.04-.015-2.04c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729c1.205.084 1.838 1.236 1.838 1.236c1.07 1.835 2.809 1.305 3.495.998c.108-.776.417-1.305.76-1.605c-2.665-.3-5.466-1.332-5.466-5.93c0-1.31.465-2.38 1.235-3.22c-.135-.303-.54-1.523.105-3.176c0 0 1.005-.322 3.3 1.23c.96-.267 1.98-.399 3-.405c1.02.006 2.04.138 3 .405c2.28-1.552 3.285-1.23 3.285-1.23c.645 1.653.24 2.873.12 3.176c.765.84 1.23 1.91 1.23 3.22c0 4.61-2.805 5.625-5.475 5.92c.42.36.81 1.096.81 2.22c0 1.606-.015 2.896-.015 3.286c0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> <strong>GitHub :</strong> [Lien repo]</p>
+                <p><svg style="width: 32px; height: 32px; vertical-align: middle; fill: white;" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg> <strong>Démo :</strong> Disponible sur demande</p>
+            </div>
+            <div style="margin-top: 80px; font-size: 2em; color: var(--secondary);">
+                Merci de votre attention !
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">17</span>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        const currentSlideSpan = document.getElementById('current-slide');
+        const totalSlidesSpan = document.getElementById('total-slides');
+        
+        totalSlidesSpan.textContent = totalSlides;
+        
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = n;
+            if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+            if (currentSlide < 0) currentSlide = 0;
+            
+            slides[currentSlide].classList.add('active');
+            currentSlideSpan.textContent = currentSlide + 1;
+        }
+        
+        // Keyboard navigation - Right/Left arrows only
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                showSlide(currentSlide - 1);
+            }
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                showSlide(currentSlide + 1);
+            }
+            if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(0);
+            }
+            if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides - 1);
+            }
+        });
+        
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
